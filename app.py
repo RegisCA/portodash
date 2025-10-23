@@ -48,6 +48,8 @@ def main():
     # Fetch current prices on load or refresh
     st.sidebar.text('Fetching latest prices...')
     prices = get_current_prices(tickers)
+    fetch_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.sidebar.markdown(f"*Data last fetched: {fetch_time}*")
 
     # compute portfolio data
     df = compute_portfolio_df(holdings, prices)
