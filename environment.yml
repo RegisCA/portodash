@@ -1,0 +1,13 @@
+name: portodash
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - streamlit
+  - pandas
+  - pyarrow
+  - plotly
+  - yfinance
+  - apscheduler
+  - requests
+  - pip
