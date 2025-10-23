@@ -64,7 +64,9 @@ def main():
 
     st.subheader('Holdings')
     st.dataframe(df.style.format({
-        'price': '{:,.2f}',
+        'shares': '{:,.4f}',
+        'cost_basis': '{:,.4f}',
+        'price': '{:,.4f}',
         'current_value': '{:,.2f}',
         'cost_total': '{:,.2f}',
         'gain': '{:,.2f}',

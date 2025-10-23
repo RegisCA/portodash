@@ -11,12 +11,12 @@ def compute_portfolio_df(holdings_list, prices_dict):
     rows = []
     for h in holdings_list:
         ticker = h.get('ticker')
-        shares = float(h.get('shares', 0))
-        cost_basis = float(h.get('cost_basis', 0))
-        price = prices_dict.get(ticker) or 0.0
-        current_value = shares * price
-        cost_total = shares * cost_basis
-        gain = current_value - cost_total
+        shares = round(float(h.get('shares', 0)), 4)
+        cost_basis = round(float(h.get('cost_basis', 0)), 4)
+        price = round(float(prices_dict.get(ticker) or 0.0), 4)
+        current_value = round(shares * price, 2)
+        cost_total = round(shares * cost_basis, 2)
+        gain = round(current_value - cost_total, 2)
         gain_pct = (gain / cost_total) if cost_total != 0 else None
         rows.append({
             'ticker': ticker,
