@@ -1,0 +1,8 @@
+{
+  "holdings": [
+    {"ticker": "XEQT.TO", "shares": 7730.8065, "cost_basis": 39.53},
+    {"ticker": "VE.TO", "shares": 1577.3948, "cost_basis": 43.88},
+    {"ticker": "FFFFX", "shares": 38000, "cost_basis": 11.97},
+    {"ticker": "FBGRX", "shares": 830, "cost_basis": 240.01}
+  ]
+}
