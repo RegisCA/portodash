@@ -5,6 +5,7 @@ Run: streamlit run app.py
 import os
 import json
 from datetime import datetime, timedelta
+import pytz
 
 import pandas as pd
 import streamlit as st
@@ -46,10 +47,15 @@ def main():
     st.sidebar.markdown(f"**Tickers:** {', '.join(tickers)}")
 
     # Fetch current prices on load or refresh
-    st.sidebar.text('Fetching latest prices...')
-    prices = get_current_prices(tickers)
-    fetch_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.sidebar.markdown(f"*Data last fetched: {fetch_time}*")
+    with st.sidebar:
+        if refresh:
+            st.text('Fetching latest prices...')
+        prices = get_current_prices(tickers)
+        tz = pytz.timezone('America/Toronto')  # Use Toronto for TSX market time
+        fetch_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
+
+    # Show fetch time prominently
+    st.markdown(f"### Portfolio Status\n**Last Updated:** {fetch_time}")
 
     # compute portfolio data
     df = compute_portfolio_df(holdings, prices)
