@@ -10,4 +10,5 @@ dependencies:
   - yfinance
   - apscheduler
   - requests
+  - pytz
   - pip
