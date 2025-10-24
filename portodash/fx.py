@@ -54,17 +54,24 @@ def get_fx_rates(currencies: Iterable[str], base: str = 'CAD', max_age_hours: in
     except Exception:
         logger.debug('Failed to read fx cache', exc_info=True)
 
-    # Fetch from exchangerate.host (public, no API key)
+    # Fetch from open.er-api.com (free, no API key required)
     try:
-        # We fetch with base=base and read rates; we'll compute rate_to_base as 1 / rates[currency]
-        url = f'https://api.exchangerate.host/latest'
-        params = {'base': base.upper(), 'symbols': ','.join(sorted(currs))}
-        r = requests.get(url, params=params, timeout=10)
+        # Fetch rates with base currency
+        url = f'https://open.er-api.com/v6/latest/{base.upper()}'
+        r = requests.get(url, timeout=10)
         r.raise_for_status()
         j = r.json()
+        
+        if not j.get('result') == 'success':
+            logger.error(f"FX API returned non-success: {j}")
+            return {}
+            
         base_rates = j.get('rates', {})  # rates: currency -> value (currency per base)
 
-        # Convert: base_rates[c] = CURRENCY per BASE -> so 1 CURRENCY = 1 / base_rates[c] BASE
+        # Convert: base_rates[c] = CURRENCY per BASE
+        # So 1 BASE = base_rates[c] CURRENCY
+        # We want: 1 CURRENCY = ? BASE
+        # Answer: 1 CURRENCY = 1 / base_rates[c] BASE
         out = {}
         for c in currs:
             v = base_rates.get(c)

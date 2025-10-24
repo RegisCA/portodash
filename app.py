@@ -117,7 +117,28 @@ def main():
 
     # Fetch current prices ONLY on explicit refresh or first load with no cache
     # This prevents refetches when filters change
-    should_fetch = refresh or not st.session_state.prices_cache
+    # However, if we're rate-limited, skip the fetch attempt and go straight to cache
+    should_fetch = (refresh or not st.session_state.prices_cache)
+    
+    # If rate-limited, bypass live fetch and use cache immediately
+    if should_fetch and st.session_state.rate_limited_until and now < st.session_state.rate_limited_until:
+        # Skip fetch, load from cache instead
+        should_fetch = False
+        if not st.session_state.prices_cache:
+            # No session cache, try loading from CSV
+            with st.sidebar:
+                st.text('Loading cached prices (rate limited)...')
+            try:
+                from portodash.data_fetch import get_cached_prices
+                cached_prices, _ = get_cached_prices(tickers, csv_path=HIST_CSV)
+                if cached_prices:
+                    st.session_state.prices_cache = cached_prices
+                    st.session_state.price_source = 'cache'
+                    # Keep existing timestamp or use a placeholder
+                    if not st.session_state.fetched_at_iso:
+                        st.session_state.fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+            except Exception as e:
+                st.sidebar.error(f"Could not load cached prices: {e}")
     
     if should_fetch:
         with st.sidebar:
@@ -277,7 +298,7 @@ def main():
         {' · '.join([f"1 {curr} = {rate:.4f} CAD" for curr, rate in sorted(fx_rates.items())])}
         
         *Holdings in foreign currencies are converted to CAD using the above rates.  
-        Exchange rates cached for 12 hours from exchangerate.host.*
+        Exchange rates cached for 12 hours from open.er-api.com.*
         """)
 
     st.subheader('Holdings')
