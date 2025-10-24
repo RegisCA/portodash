@@ -2,39 +2,103 @@ import os
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
+import logging
+import pytz
+
+from .cache import get_cached_prices
 
 
-def get_current_prices(tickers):
+logger = logging.getLogger(__name__)
+
+
+def get_current_prices(tickers, csv_path=None):
     """Fetch most recent available adjusted close prices for tickers.
 
-    Returns dict ticker -> price (float) or None on failure for that ticker.
+    Returns a tuple: (prices_dict, fetched_at_iso, source)
+
+    - prices_dict: mapping ticker -> price (float or None)
+    - fetched_at_iso: ISO-format UTC timestamp representing the authoritative
+      timestamp for the returned prices (e.g. cache record time or fetch time)
+    - source: one of 'live', 'cache', or 'mixed' depending on origins
     """
     prices = {t: None for t in tickers}
+    origins = {t: None for t in tickers}  # 'live' or 'cache'
+    times = {t: None for t in tickers}  # ISO timestamps per-ticker
+
+    # Attempt live fetch via yfinance
     try:
-        # yfinance can download multiple tickers at once
         data = yf.download(tickers=" ".join(tickers), period="5d", interval="1d", group_by='ticker', threads=True, progress=False, auto_adjust=False)
 
-        # Handle multi-column result
         if isinstance(data.columns, pd.MultiIndex):
             for t in tickers:
                 try:
                     ser = data[t]["Adj Close"].dropna()
                     prices[t] = float(ser.iloc[-1])
+                    origins[t] = 'live'
+                    times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
                 except Exception:
                     prices[t] = None
+                    origins[t] = None
         else:
-            # Single ticker or simplified DF
+            # single ticker or simplified DF
             try:
                 ser = data["Adj Close"].dropna()
                 last = float(ser.iloc[-1])
                 for t in tickers:
                     prices[t] = last
+                    origins[t] = 'live'
+                    times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
             except Exception:
-                prices = {t: None for t in tickers}
+                for t in tickers:
+                    prices[t] = None
+                    origins[t] = None
     except Exception:
-        prices = {t: None for t in tickers}
+        logger.exception("Failed to fetch current prices from yfinance")
+        for t in tickers:
+            prices[t] = None
+            origins[t] = None
 
-    return prices
+    # If any prices are missing and we have a cache path, try cache
+    if csv_path and any(p is None for p in prices.values()):
+        cached_prices, cached_times = get_cached_prices(tickers, csv_path)
+        for t in tickers:
+            if prices.get(t) is None and cached_prices.get(t) is not None:
+                prices[t] = cached_prices[t]
+                origins[t] = 'cache'
+                times[t] = cached_times.get(t)
+                logger.info(f"Using cached price for {t}: {cached_prices[t]} (ts={cached_times.get(t)})")
+
+    # Determine authoritative fetched_at as the newest timestamp among returned data
+    fetched_datetimes = []
+    for t in tickers:
+        ts = times.get(t)
+        if ts:
+            try:
+                # parse ISO timestamp
+                dt = pd.to_datetime(ts)
+                if dt.tzinfo is None:
+                    dt = dt.tz_localize(pytz.UTC)
+                fetched_datetimes.append(dt)
+            except Exception:
+                continue
+
+    if fetched_datetimes:
+        overall = max(fetched_datetimes)
+        fetched_at_iso = overall.tz_convert(pytz.UTC).isoformat()
+    else:
+        # no timestamps available: use now UTC
+        fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+
+    # Source: 'live' if all live, 'cache' if all cache, else 'mixed'
+    uniq = set(o for o in origins.values() if o is not None)
+    if len(uniq) == 1:
+        source = list(uniq)[0]
+    elif len(uniq) == 0:
+        source = 'unknown'
+    else:
+        source = 'mixed'
+
+    return prices, fetched_at_iso, source
 
 
 def get_historical_prices(tickers, period="30d"):
@@ -59,7 +123,7 @@ def get_historical_prices(tickers, period="30d"):
         return pd.DataFrame()
 
 
-def fetch_and_store_snapshot(holdings, prices, csv_path):
+def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
     """Append a snapshot for each holding to csv_path.
 
     holdings: list of dicts with keys ticker, shares, cost_basis
@@ -68,7 +132,12 @@ def fetch_and_store_snapshot(holdings, prices, csv_path):
     Also writes portfolio_value (same value repeated for each row) and allocation_pct
     """
     rows = []
-    now = datetime.utcnow().isoformat()
+    # Use provided fetched_at timestamp if available (should be ISO UTC),
+    # otherwise fall back to current UTC time.
+    if fetched_at_iso:
+        now = fetched_at_iso
+    else:
+        now = datetime.utcnow().isoformat()
     # calculate current values
     total = 0.0
     for h in holdings:

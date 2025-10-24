@@ -47,39 +47,22 @@ def main():
 
     st.sidebar.markdown(f"**Tickers:** {', '.join(tickers)}")
 
-    # Fetch current prices on load or refresh
+    # Fetch current prices on load or refresh. get_current_prices now returns
+    # (prices, fetched_at_iso, source) where fetched_at_iso is an ISO UTC timestamp.
     with st.sidebar:
         if refresh:
             st.text('Fetching latest prices...')
-        prices = get_current_prices(tickers, csv_path=HIST_CSV)  # Enable cache fallback
+        prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)  # Enable cache fallback
         tz = pytz.timezone('America/Toronto')  # Use Toronto for TSX market time
 
-    # Prefer the timestamp of the most recent saved snapshot if available
-    fetch_time = None
-    if os.path.exists(HIST_CSV):
-        try:
-            hist_df = pd.read_csv(HIST_CSV, parse_dates=['date'])
-            if not hist_df.empty and 'date' in hist_df.columns:
-                last_dt = hist_df['date'].max()
-                # make timezone-aware as UTC if naive
-                try:
-                    # pandas Timestamp
-                    if last_dt.tzinfo is None:
-                        last_dt = pd.Timestamp(last_dt).tz_localize(pytz.UTC)
-                except Exception:
-                    # fallback: assume UTC
-                    try:
-                        last_dt = last_dt.replace(tzinfo=pytz.UTC)
-                    except Exception:
-                        last_dt = None
-
-                if last_dt is not None:
-                    fetch_time = last_dt.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
-        except Exception:
-            # ignore parse errors and fall back to page load time
-            fetch_time = None
-
-    if fetch_time is None:
+    # Use the authoritative fetched_at timestamp returned by get_current_prices.
+    # This will reflect the cache snapshot time if cached data were used.
+    try:
+        fetched_dt = datetime.fromisoformat(fetched_at_iso)
+        # convert to local tz for display
+        fetch_time = fetched_dt.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
+    except Exception:
+        # Fallback: if parsing fails, use now
         fetch_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
 
     # Show fetch time and scheduler status prominently
@@ -87,7 +70,9 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown(f"**Last Updated:** {fetch_time}")
+        # Display source indicator with the timestamp
+        source_label = price_source.capitalize() if price_source else 'Unknown'
+        st.markdown(f"**Last Updated:** {fetch_time} ({source_label})")
 
     # Show scheduler status if available; prefer process check (psutil) then fall back to logs
     def _detect_scheduler_running():
@@ -200,7 +185,7 @@ def main():
 
     # Snapshot storage
     if st.button('Save snapshot to CSV'):
-        written = fetch_and_store_snapshot(holdings, prices, HIST_CSV)
+        written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
         st.success(f'Wrote {len(written)} rows to {HIST_CSV}')
 
     # Export historical CSV
