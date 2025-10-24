@@ -30,12 +30,20 @@ def main():
     st.set_page_config(page_title='PortoDash', layout='wide')
     st.title('PortoDash — Portfolio Tracker')
 
+    # Load portfolio first
+    try:
+        cfg = load_portfolio(PORTFOLIO_PATH)
+    except Exception as e:
+        st.error(f'Failed to load portfolio.json: {e}')
+        return
+
+    holdings = cfg.get('holdings', [])
+
     # Sidebar
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
     
     # Account filter
-    holdings = cfg.get('holdings', [])
     all_accounts = sorted(set(h.get('account', 'Default') for h in holdings))
     selected_account = st.sidebar.selectbox(
         'Filter by Account',
@@ -44,15 +52,6 @@ def main():
     )
     
     refresh = st.sidebar.button('Refresh prices')
-
-    # Load portfolio
-    try:
-        cfg = load_portfolio(PORTFOLIO_PATH)
-    except Exception as e:
-        st.error(f'Failed to load portfolio.json: {e}')
-        return
-
-    holdings = cfg.get('holdings', [])
     
     # Apply account filter
     if selected_account != 'All Accounts':
