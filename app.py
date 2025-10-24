@@ -258,21 +258,33 @@ def main():
 
     df = compute_portfolio_df(holdings, prices, fx_rates=fx_rates, base_currency='CAD')
 
-    # Summary KPIs
+    # Summary KPIs - all values in CAD
     col1, col2, col3 = st.columns(3)
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
     total_cost = df.loc[df['ticker'] == 'TOTAL', 'cost_total'].squeeze() if 'TOTAL' in df['ticker'].values else df['cost_total'].sum()
     total_gain = df.loc[df['ticker'] == 'TOTAL', 'gain'].squeeze() if 'TOTAL' in df['ticker'].values else df['gain'].sum()
 
-    col1.metric('Portfolio Value', f"{total_value:,.2f}")
-    col2.metric('Total Cost', f"{total_cost:,.2f}")
-    col3.metric('Total Gain', f"{total_gain:,.2f}")
+    col1.metric('Portfolio Value (CAD)', f"${total_value:,.2f}")
+    col2.metric('Total Cost (CAD)', f"${total_cost:,.2f}")
+    col3.metric('Total Gain (CAD)', f"${total_gain:,.2f}")
+    
+    # Show FX rates and calculation methodology if multi-currency
+    if fx_rates:
+        st.info(f"""
+        **💱 Multi-Currency Portfolio** — All values displayed in **CAD** (Canadian Dollar)
+        
+        **Exchange Rates Used:**  
+        {' · '.join([f"1 {curr} = {rate:.4f} CAD" for curr, rate in sorted(fx_rates.items())])}
+        
+        *Holdings in foreign currencies are converted to CAD using the above rates.  
+        Exchange rates cached for 12 hours from exchangerate.host.*
+        """)
 
     st.subheader('Holdings')
     
     # Show account breakdown if viewing all accounts
     if selected_account == 'All Accounts' and 'account' in df.columns:
-        st.markdown("#### By Account")
+        st.markdown("#### By Account (CAD)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
             'current_value': 'sum',
@@ -283,21 +295,21 @@ def main():
         accounts_df = accounts_df.sort_values('current_value', ascending=False)
         
         st.dataframe(accounts_df.style.format({
-            'current_value': '{:,.2f}',
-            'cost_total': '{:,.2f}',
-            'gain': '{:,.2f}',
+            'current_value': '${:,.2f}',
+            'cost_total': '${:,.2f}',
+            'gain': '${:,.2f}',
             'gain_pct': '{:.2%}'
         }))
         
-        st.markdown("#### All Holdings")
+        st.markdown("#### All Holdings (values in CAD)")
     
     st.dataframe(df.style.format({
         'shares': '{:,.4f}',
         'cost_basis': '{:,.4f}',
-        'price': '{:,.4f}',
-        'current_value': '{:,.2f}',
-        'cost_total': '{:,.2f}',
-        'gain': '{:,.2f}',
+        'price': '${:,.4f}',
+        'current_value': '${:,.2f}',
+        'cost_total': '${:,.2f}',
+        'gain': '${:,.2f}',
         'allocation_pct': '{:.2%}',
         'gain_pct': '{:.2%}'
     }))
