@@ -5,4 +5,5 @@ __all__ = [
     "calculations",
     "viz",
     "scheduler",
+    "cache",
 ]

@@ -33,6 +33,16 @@ def main():
     # Sidebar
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
+    
+    # Account filter
+    holdings = cfg.get('holdings', [])
+    all_accounts = sorted(set(h.get('account', 'Default') for h in holdings))
+    selected_account = st.sidebar.selectbox(
+        'Filter by Account',
+        options=['All Accounts'] + all_accounts,
+        index=0
+    )
+    
     refresh = st.sidebar.button('Refresh prices')
 
     # Load portfolio
@@ -43,6 +53,11 @@ def main():
         return
 
     holdings = cfg.get('holdings', [])
+    
+    # Apply account filter
+    if selected_account != 'All Accounts':
+        holdings = [h for h in holdings if h.get('account', 'Default') == selected_account]
+    
     tickers = [h['ticker'] for h in holdings]
 
     st.sidebar.markdown(f"**Tickers:** {', '.join(tickers)}")
@@ -161,6 +176,28 @@ def main():
     col3.metric('Total Gain', f"{total_gain:,.2f}")
 
     st.subheader('Holdings')
+    
+    # Show account breakdown if viewing all accounts
+    if selected_account == 'All Accounts' and 'account' in df.columns:
+        st.markdown("#### By Account")
+        # Group by account (excluding TOTAL row)
+        accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
+            'current_value': 'sum',
+            'cost_total': 'sum',
+            'gain': 'sum'
+        }).reset_index()
+        accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
+        accounts_df = accounts_df.sort_values('current_value', ascending=False)
+        
+        st.dataframe(accounts_df.style.format({
+            'current_value': '{:,.2f}',
+            'cost_total': '{:,.2f}',
+            'gain': '{:,.2f}',
+            'gain_pct': '{:.2%}'
+        }))
+        
+        st.markdown("#### All Holdings")
+    
     st.dataframe(df.style.format({
         'shares': '{:,.4f}',
         'cost_basis': '{:,.4f}',

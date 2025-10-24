@@ -5,7 +5,7 @@ import numpy as np
 def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currency='CAD'):
     """Return a DataFrame with portfolio calculations per ticker and totals.
 
-    holdings_list: list of dicts with keys ticker, shares, cost_basis
+    holdings_list: list of dicts with keys ticker, shares, cost_basis, currency (optional), account (optional)
     prices_dict: dict ticker->price
     """
     rows = []
@@ -15,6 +15,7 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
         cost_basis = round(float(h.get('cost_basis', 0)), 4)
         # Determine currency for the holding (default base_currency)
         currency = h.get('currency', base_currency)
+        account = h.get('account', 'Default')
         price_native = float(prices_dict.get(ticker) or 0.0)
 
         # Convert native price to base currency using fx_rates if provided
@@ -30,6 +31,7 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
         gain = round(current_value - cost_total, 2)
         gain_pct = (gain / cost_total) if cost_total != 0 else None
         rows.append({
+            'account': account,
             'ticker': ticker,
             'shares': shares,
             'cost_basis': cost_basis,
@@ -50,6 +52,7 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
     df = df.sort_values(by='current_value', ascending=False).reset_index(drop=True)
     # Use numeric NaN for non-applicable numeric fields to avoid formatting errors
     totals = {
+        'account': 'TOTAL',
         'ticker': 'TOTAL',
         'shares': np.nan,
         'cost_basis': np.nan,
