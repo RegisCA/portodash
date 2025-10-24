@@ -28,9 +28,11 @@ The portfolio.json format:
 {
     "holdings": [
         {
-            "ticker": "XEQT.TO",  # Yahoo Finance ticker symbol
-            "shares": 100.5,      # Number of shares (float)
-            "cost_basis": 25.75   # Average cost per share
+            "ticker": "XEQT.TO",     # Yahoo Finance ticker symbol
+            "shares": 100.5,         # Number of shares (float)
+            "cost_basis": 25.75,     # Average cost per share
+            "currency": "CAD",       # Currency code (optional, defaults to CAD)
+            "account": "TFSA"        # Account name (optional, for grouping)
         }
     ]
 }
@@ -40,6 +42,8 @@ Notes:
 
 - Use `.TO` suffix for TSX-listed securities (e.g., "XEQT.TO")
 - US-listed securities need no suffix (e.g., "SPY")
+- `currency`: Optional field for multi-currency support. Defaults to CAD if omitted. Exchange rates are fetched automatically and values are displayed in CAD.
+- `account`: Optional field to track holdings across multiple accounts (e.g., "TFSA", "RRSP", "401k"). Use the account filter in the UI to view specific accounts or all accounts together.
 - The `portfolio.json` file is git-ignored to keep your holdings private
 - Historical snapshots are saved to `historical.csv` (also git-ignored)
 

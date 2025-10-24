@@ -126,10 +126,9 @@ def get_historical_prices(tickers, period="30d"):
 def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
     """Append a snapshot for each holding to csv_path.
 
-    holdings: list of dicts with keys ticker, shares, cost_basis
+    holdings: list of dicts with keys ticker, shares, cost_basis, currency (optional), account (optional)
     prices: dict ticker->price
-    Writes rows: date,ticker,shares,cost_basis,price,current_value
-    Also writes portfolio_value (same value repeated for each row) and allocation_pct
+    Writes rows: date,account,ticker,shares,cost_basis,price,current_value,portfolio_value,allocation_pct
     """
     rows = []
     # Use provided fetched_at timestamp if available (should be ISO UTC),
@@ -149,6 +148,7 @@ def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
 
     for h in holdings:
         t = h.get('ticker')
+        account = h.get('account', 'Default')
         shares = float(h.get('shares', 0))
         cost_basis = float(h.get('cost_basis', 0))
         price = prices.get(t) or 0.0
@@ -156,6 +156,7 @@ def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
         allocation = (current_value / total) if total > 0 else 0.0
         rows.append({
             'date': now,
+            'account': account,
             'ticker': t,
             'shares': shares,
             'cost_basis': cost_basis,
