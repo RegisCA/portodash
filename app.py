@@ -12,6 +12,7 @@ import streamlit as st
 
 from portodash.data_fetch import get_current_prices, get_historical_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
+from portodash.fx import get_fx_rates
 from portodash.viz import make_allocation_pie, make_30d_performance_chart
 
 
@@ -50,15 +51,119 @@ def main():
     with st.sidebar:
         if refresh:
             st.text('Fetching latest prices...')
-        prices = get_current_prices(tickers)
+        prices = get_current_prices(tickers, csv_path=HIST_CSV)  # Enable cache fallback
         tz = pytz.timezone('America/Toronto')  # Use Toronto for TSX market time
+
+    # Prefer the timestamp of the most recent saved snapshot if available
+    fetch_time = None
+    if os.path.exists(HIST_CSV):
+        try:
+            hist_df = pd.read_csv(HIST_CSV, parse_dates=['date'])
+            if not hist_df.empty and 'date' in hist_df.columns:
+                last_dt = hist_df['date'].max()
+                # make timezone-aware as UTC if naive
+                try:
+                    # pandas Timestamp
+                    if last_dt.tzinfo is None:
+                        last_dt = pd.Timestamp(last_dt).tz_localize(pytz.UTC)
+                except Exception:
+                    # fallback: assume UTC
+                    try:
+                        last_dt = last_dt.replace(tzinfo=pytz.UTC)
+                    except Exception:
+                        last_dt = None
+
+                if last_dt is not None:
+                    fetch_time = last_dt.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
+        except Exception:
+            # ignore parse errors and fall back to page load time
+            fetch_time = None
+
+    if fetch_time is None:
         fetch_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S %Z")
 
-    # Show fetch time prominently
-    st.markdown(f"### Portfolio Status\n**Last Updated:** {fetch_time}")
+    # Show fetch time and scheduler status prominently
+    st.markdown("### Portfolio Status")
+    col1, col2 = st.columns(2)
 
-    # compute portfolio data
-    df = compute_portfolio_df(holdings, prices)
+    with col1:
+        st.markdown(f"**Last Updated:** {fetch_time}")
+
+    # Show scheduler status if available; prefer process check (psutil) then fall back to logs
+    def _detect_scheduler_running():
+        """Return (running_bool, method) where method is 'process' or 'log' or None."""
+        # Try psutil first
+        try:
+            import psutil
+            for p in psutil.process_iter(['cmdline']):
+                try:
+                    cmd = p.info.get('cmdline') or []
+                    if any('run_scheduler.py' in str(c) for c in cmd):
+                        return True, 'process'
+                except Exception:
+                    continue
+        except Exception:
+            # psutil not available; fall back to log inspection
+            pass
+
+        # Check today's scheduler log as a heuristic
+        log_path = os.path.join(BASE_DIR, 'logs', f'scheduler_{datetime.now().strftime("%Y%m%d")}.log')
+        try:
+            if os.path.exists(log_path):
+                # if log exists and was modified recently, consider scheduler running
+                mtime = datetime.fromtimestamp(os.path.getmtime(log_path), tz)
+                if (datetime.now(tz) - mtime).total_seconds() < 24 * 3600:
+                    return True, 'log'
+                return True, 'log'
+        except Exception:
+            pass
+
+        return False, None
+
+    with col2:
+        # Prefer a persisted status file written by the scheduler (most reliable)
+        status_file = os.path.join(BASE_DIR, 'logs', 'scheduler_status.json')
+        shown = False
+        if os.path.exists(status_file):
+            try:
+                with open(status_file, 'r') as fh:
+                    status_json = json.load(fh)
+                # show running state or next run
+                if status_json.get('job_running'):
+                    st.success('⚡ Scheduler running (job active)')
+                    shown = True
+                elif status_json.get('next_run'):
+                    try:
+                        nr = datetime.fromisoformat(status_json.get('next_run'))
+                        nr_local = nr.astimezone(tz)
+                        st.info(f"📅 Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                    except Exception:
+                        st.info('📅 Next scheduled update available')
+                    shown = True
+                elif status_json.get('last_error'):
+                    st.error(f"❌ Last scheduler error: {status_json.get('last_error')}")
+                    shown = True
+            except Exception:
+                # ignore corrupted status file and fall back
+                shown = False
+
+        if not shown:
+            # Fall back to process/log detection heuristic
+            running, method = _detect_scheduler_running()
+            if running:
+                if method == 'process':
+                    st.success('⚡ Scheduler process detected')
+                else:
+                    st.success('⚡ Scheduler log found (scheduler probably running)')
+            else:
+                st.warning("⚠️ Scheduler not running — start it with: python scripts/run_scheduler.py")
+
+    # compute portfolio data; collect currencies per holding (optional field `currency`)
+    currencies = {h.get('currency', 'CAD').upper() for h in holdings}
+    # Request FX rates for any currencies that are not the base
+    fx_rates = get_fx_rates(currencies, base='CAD') if currencies else {}
+
+    df = compute_portfolio_df(holdings, prices, fx_rates=fx_rates, base_currency='CAD')
 
     # Summary KPIs
     col1, col2, col3 = st.columns(3)

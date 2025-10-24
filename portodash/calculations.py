@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-def compute_portfolio_df(holdings_list, prices_dict):
+def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currency='CAD'):
     """Return a DataFrame with portfolio calculations per ticker and totals.
 
     holdings_list: list of dicts with keys ticker, shares, cost_basis
@@ -13,7 +13,18 @@ def compute_portfolio_df(holdings_list, prices_dict):
         ticker = h.get('ticker')
         shares = round(float(h.get('shares', 0)), 4)
         cost_basis = round(float(h.get('cost_basis', 0)), 4)
-        price = round(float(prices_dict.get(ticker) or 0.0), 4)
+        # Determine currency for the holding (default base_currency)
+        currency = h.get('currency', base_currency)
+        price_native = float(prices_dict.get(ticker) or 0.0)
+
+        # Convert native price to base currency using fx_rates if provided
+        price_conv = price_native
+        if fx_rates and currency and currency.upper() != base_currency.upper():
+            r = fx_rates.get(currency.upper())
+            if r:
+                price_conv = price_native * float(r)
+
+        price = round(float(price_conv or 0.0), 4)
         current_value = round(shares * price, 2)
         cost_total = round(shares * cost_basis, 2)
         gain = round(current_value - cost_total, 2)
