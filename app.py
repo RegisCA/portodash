@@ -12,6 +12,7 @@ import streamlit as st
 
 from portodash.data_fetch import get_current_prices, get_historical_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
+from portodash.fx import get_fx_rates
 from portodash.viz import make_allocation_pie, make_30d_performance_chart
 
 
@@ -157,8 +158,12 @@ def main():
             else:
                 st.warning("⚠️ Scheduler not running — start it with: python scripts/run_scheduler.py")
 
-    # compute portfolio data
-    df = compute_portfolio_df(holdings, prices)
+    # compute portfolio data; collect currencies per holding (optional field `currency`)
+    currencies = {h.get('currency', 'CAD').upper() for h in holdings}
+    # Request FX rates for any currencies that are not the base
+    fx_rates = get_fx_rates(currencies, base='CAD') if currencies else {}
+
+    df = compute_portfolio_df(holdings, prices, fx_rates=fx_rates, base_currency='CAD')
 
     # Summary KPIs
     col1, col2, col3 = st.columns(3)
