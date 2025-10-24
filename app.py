@@ -39,6 +39,10 @@ def main():
         st.session_state.fetched_at_iso = None
     if 'price_source' not in st.session_state:
         st.session_state.price_source = None
+    if 'rate_limited_until' not in st.session_state:
+        st.session_state.rate_limited_until = None
+    if 'last_error' not in st.session_state:
+        st.session_state.last_error = None
 
     # Load portfolio first
     try:
@@ -63,24 +67,45 @@ def main():
     
     # Rate limiting: cooldown period in seconds
     COOLDOWN_SECONDS = 60
+    RATE_LIMIT_EXTENDED_COOLDOWN = 3600  # 1 hour if rate limited by yfinance
     tz = pytz.timezone('America/Toronto')
     now = datetime.now(tz)
     
-    # Check if we're in cooldown period
+    # Check if we're in cooldown period or rate limited
     can_refresh = True
     cooldown_remaining = 0
-    if st.session_state.last_fetch_time:
+    button_label = 'Refresh prices'
+    
+    # Check if we're still in extended rate limit period
+    if st.session_state.rate_limited_until:
+        if now < st.session_state.rate_limited_until:
+            can_refresh = False
+            remaining_secs = int((st.session_state.rate_limited_until - now).total_seconds())
+            remaining_mins = remaining_secs // 60
+            button_label = f'⏳ Rate limited (wait {remaining_mins}m)'
+        else:
+            # Rate limit period expired
+            st.session_state.rate_limited_until = None
+            st.session_state.last_error = None
+    
+    # Check normal cooldown
+    if can_refresh and st.session_state.last_fetch_time:
         elapsed = (now - st.session_state.last_fetch_time).total_seconds()
         if elapsed < COOLDOWN_SECONDS:
             can_refresh = False
             cooldown_remaining = int(COOLDOWN_SECONDS - elapsed)
+            button_label = f'Refresh prices (wait {cooldown_remaining}s)'
     
-    # Refresh button with cooldown
+    # Refresh button with appropriate state
     if can_refresh:
         refresh = st.sidebar.button('Refresh prices')
     else:
-        st.sidebar.button(f'Refresh prices (wait {cooldown_remaining}s)', disabled=True)
+        st.sidebar.button(button_label, disabled=True)
         refresh = False
+    
+    # Show rate limit warning if we have one
+    if st.session_state.last_error:
+        st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
     # Apply account filter
     if selected_account != 'All Accounts':
@@ -97,12 +122,41 @@ def main():
     if should_fetch:
         with st.sidebar:
             st.text('Fetching latest prices...')
-        prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
-        # Update session state
-        st.session_state.prices_cache = prices
-        st.session_state.fetched_at_iso = fetched_at_iso
-        st.session_state.price_source = price_source
-        st.session_state.last_fetch_time = now
+        
+        try:
+            prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
+            # Update session state on success
+            st.session_state.prices_cache = prices
+            st.session_state.fetched_at_iso = fetched_at_iso
+            st.session_state.price_source = price_source
+            st.session_state.last_fetch_time = now
+            # Clear any previous errors
+            st.session_state.last_error = None
+            st.session_state.rate_limited_until = None
+            
+        except Exception as e:
+            # Check if it's a rate limit error
+            error_msg = str(e)
+            if 'YFRateLimitError' in error_msg or 'Rate limited' in error_msg or 'Too Many Requests' in error_msg:
+                # Set extended cooldown for rate limit
+                st.session_state.rate_limited_until = now + timedelta(seconds=RATE_LIMIT_EXTENDED_COOLDOWN)
+                st.session_state.last_error = "Yahoo Finance rate limit reached. Using cached data. Will retry in ~1 hour."
+                st.sidebar.error("🚫 Rate limit reached! Using cached prices.")
+            else:
+                # Other error - show it but don't extend cooldown as much
+                st.session_state.last_error = f"Error fetching prices: {error_msg}"
+                st.sidebar.error(f"❌ {st.session_state.last_error}")
+            
+            # Fall back to cached data if available
+            if st.session_state.prices_cache:
+                prices = st.session_state.prices_cache
+                fetched_at_iso = st.session_state.fetched_at_iso
+                price_source = 'cache (error fallback)'
+            else:
+                # No cache available - create empty prices
+                prices = {t: None for t in tickers}
+                fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+                price_source = 'unavailable'
     else:
         # Use cached prices
         prices = st.session_state.prices_cache
