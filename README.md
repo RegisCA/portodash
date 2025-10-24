@@ -14,6 +14,7 @@ Features (Phase 1):
 ## Configuration
 
 1. Create your portfolio configuration:
+
 ```bash
 # Copy the sample config
 cp portfolio.json.sample portfolio.json
@@ -22,6 +23,7 @@ cp portfolio.json.sample portfolio.json
 ```
 
 The portfolio.json format:
+
 ```json
 {
     "holdings": [
@@ -35,6 +37,7 @@ The portfolio.json format:
 ```
 
 Notes:
+
 - Use `.TO` suffix for TSX-listed securities (e.g., "XEQT.TO")
 - US-listed securities need no suffix (e.g., "SPY")
 - The `portfolio.json` file is git-ignored to keep your holdings private
@@ -107,12 +110,14 @@ python scripts/run_scheduler.py
 ```
 
 Notes:
+
 - The scheduler uses the `America/Toronto` timezone by default and schedules a weekday job at 16:30 local time.
 - The scheduler will append snapshots to `historical.csv` and write logs to `logs/scheduler_YYYYMMDD.log`.
 - The scheduler also writes `logs/scheduler_status.json` with keys: `last_run`, `next_run`, `job_running`, `last_error`.
 
 Helpful tooling
 ---------------
+
 - `psutil` (optional): if installed, the dashboard can detect the scheduler process directly. Install with:
 
 ```bash
@@ -121,6 +126,7 @@ python -m pip install psutil
 
 Service / boot integration (macOS LaunchAgent example)
 --------------------------------------------------
+
 Below is a minimal LaunchAgent plist you can use to run the scheduler on login. Save it as `~/Library/LaunchAgents/com.yourname.portodash.scheduler.plist` and `launchctl load` it.
 
 Replace `/path/to` with your project path and adjust the Python interpreter if you use a conda env.
@@ -145,8 +151,14 @@ Replace `/path/to` with your project path and adjust the Python interpreter if y
         <string>/Users/yourname/Projects/portodash/logs/scheduler_launchtmp.out</string>
         <key>StandardErrorPath</key>
         <string>/Users/yourname/Projects/portodash/logs/scheduler_launchtmp.err</string>
-    </dict>
+        </dict>
 </plist>
 ```
 
-If you want, I can generate a ready-to-load plist for your project path and help add a short README section on how to enable it.
+Development
+-----------
+
+Commits to this repository are made through a bot account (@regisca-bot) to properly track automated changes.
+
+````
+```
