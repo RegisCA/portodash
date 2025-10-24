@@ -30,6 +30,16 @@ def main():
     st.set_page_config(page_title='PortoDash', layout='wide')
     st.title('PortoDash — Portfolio Tracker')
 
+    # Initialize session state for price caching and rate limiting
+    if 'prices_cache' not in st.session_state:
+        st.session_state.prices_cache = {}
+    if 'last_fetch_time' not in st.session_state:
+        st.session_state.last_fetch_time = None
+    if 'fetched_at_iso' not in st.session_state:
+        st.session_state.fetched_at_iso = None
+    if 'price_source' not in st.session_state:
+        st.session_state.price_source = None
+
     # Load portfolio first
     try:
         cfg = load_portfolio(PORTFOLIO_PATH)
@@ -51,7 +61,26 @@ def main():
         index=0
     )
     
-    refresh = st.sidebar.button('Refresh prices')
+    # Rate limiting: cooldown period in seconds
+    COOLDOWN_SECONDS = 60
+    tz = pytz.timezone('America/Toronto')
+    now = datetime.now(tz)
+    
+    # Check if we're in cooldown period
+    can_refresh = True
+    cooldown_remaining = 0
+    if st.session_state.last_fetch_time:
+        elapsed = (now - st.session_state.last_fetch_time).total_seconds()
+        if elapsed < COOLDOWN_SECONDS:
+            can_refresh = False
+            cooldown_remaining = int(COOLDOWN_SECONDS - elapsed)
+    
+    # Refresh button with cooldown
+    if can_refresh:
+        refresh = st.sidebar.button('Refresh prices')
+    else:
+        st.sidebar.button(f'Refresh prices (wait {cooldown_remaining}s)', disabled=True)
+        refresh = False
     
     # Apply account filter
     if selected_account != 'All Accounts':
@@ -61,13 +90,24 @@ def main():
 
     st.sidebar.markdown(f"**Tickers:** {', '.join(tickers)}")
 
-    # Fetch current prices on load or refresh. get_current_prices now returns
-    # (prices, fetched_at_iso, source) where fetched_at_iso is an ISO UTC timestamp.
-    with st.sidebar:
-        if refresh:
+    # Fetch current prices ONLY on explicit refresh or first load with no cache
+    # This prevents refetches when filters change
+    should_fetch = refresh or not st.session_state.prices_cache
+    
+    if should_fetch:
+        with st.sidebar:
             st.text('Fetching latest prices...')
-        prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)  # Enable cache fallback
-        tz = pytz.timezone('America/Toronto')  # Use Toronto for TSX market time
+        prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
+        # Update session state
+        st.session_state.prices_cache = prices
+        st.session_state.fetched_at_iso = fetched_at_iso
+        st.session_state.price_source = price_source
+        st.session_state.last_fetch_time = now
+    else:
+        # Use cached prices
+        prices = st.session_state.prices_cache
+        fetched_at_iso = st.session_state.fetched_at_iso
+        price_source = st.session_state.price_source
 
     # Use the authoritative fetched_at timestamp returned by get_current_prices.
     # This will reflect the cache snapshot time if cached data were used.
