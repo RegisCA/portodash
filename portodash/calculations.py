@@ -33,6 +33,7 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
         rows.append({
             'account': account,
             'ticker': ticker,
+            'currency': currency,
             'shares': shares,
             'cost_basis': cost_basis,
             'price': price,
@@ -54,6 +55,7 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
     totals = {
         'account': 'TOTAL',
         'ticker': 'TOTAL',
+        'currency': '',
         'shares': np.nan,
         'cost_basis': np.nan,
         'price': np.nan,
