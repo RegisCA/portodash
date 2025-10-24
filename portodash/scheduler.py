@@ -105,15 +105,29 @@ def schedule_daily_snapshot(csv_path, portfolio_path, timezone=None):
             holdings = cfg.get('holdings', [])
             tickers = [h['ticker'] for h in holdings]
 
-            prices = get_current_prices(tickers, csv_path=csv_path)  # Enable cache fallback
-            df = fetch_and_store_snapshot(holdings, prices, csv_path)
+            # get_current_prices now returns (prices, fetched_at_iso, source)
+            prices, fetched_at_iso, source = get_current_prices(tickers, csv_path=csv_path)
+            df = fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=fetched_at_iso)
 
-            now = datetime.now(timezone)
-            _status.update_run_times(last=now)
+            # Use the authoritative fetched_at timestamp (if available) for last_run
+            try:
+                if fetched_at_iso:
+                    fetched_dt = datetime.fromisoformat(fetched_at_iso)
+                    # convert to scheduler timezone
+                    fetched_dt = fetched_dt.astimezone(timezone)
+                else:
+                    fetched_dt = datetime.now(timezone)
+            except Exception:
+                fetched_dt = datetime.now(timezone)
+
+            _status.update_run_times(last=fetched_dt)
             _write_status_file()
             _status.set_error(None)
             _write_status_file()
-            logger.info(f"Daily snapshot written: {len(df)} rows at {now.isoformat()}")
+            try:
+                logger.info(f"Daily snapshot written: {len(df)} rows at {fetched_dt.isoformat()}")
+            except Exception:
+                logger.info(f"Daily snapshot written: {len(df)} rows")
 
         except Exception as e:
             logger.exception('Failed to run daily snapshot job')

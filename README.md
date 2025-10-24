@@ -97,6 +97,18 @@ Next steps (Phase 2/3):
 - Add retry/fallback logic and caching
 - Add more charts and date range filters
 
+## Data Freshness and Provenance
+
+The dashboard displays a **"Last Updated"** timestamp showing when the portfolio prices were last fetched. This timestamp reflects the actual time the data was retrieved, whether from:
+
+- **Live**: All prices were fetched from yfinance in real-time.
+- **Cache**: All prices were loaded from the most recent local snapshot (within the cache TTL, default 24 hours).
+- **Mixed**: Some prices came from live fetch, others from cache (e.g., if some tickers failed to fetch).
+
+The source indicator appears next to the "Last Updated" timestamp in the dashboard. When you click **"Refresh prices"**, both the timestamp and source are updated based on the actual data retrieval result.
+
+If yfinance is unavailable or fails, the app automatically falls back to the most recent cached prices from `historical.csv`, ensuring you always see your portfolio data even during network issues.
+
 Scheduler (standalone)
 ----------------------
 
