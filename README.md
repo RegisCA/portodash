@@ -49,11 +49,9 @@ Notes:
 
 ## Installation
 
-## Quick Start
+### Quick Start with venv
 
 1. Create and activate a Python environment (recommended). On macOS use `python3` (many systems don't have a `python` alias):
-
-```bash
 
 ```bash
 # check you have python3 available
@@ -67,13 +65,13 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-2. Start the app:
+1. Start the app:
 
 ```bash
 streamlit run app.py
 ```
 
-## Conda (recommended on macOS Apple Silicon)
+### Conda (recommended on macOS Apple Silicon)
 
 If pip is attempting to build heavy compiled packages (for example `pyarrow`) you can avoid that by using a conda environment which provides prebuilt binaries on macOS arm64. A ready `environment.yml` is included.
 
@@ -95,11 +93,23 @@ Or use the helper script:
 ./scripts/create_conda_env.sh
 ```
 
-Next steps (Phase 2/3):
+## Features
+
+### Current Features
+
+- **Multi-currency support**: Holdings in different currencies (USD, CAD, etc.) are automatically converted to CAD base currency with transparent exchange rate display
+- **Multi-account tracking**: Filter and view holdings across different accounts (TFSA, RRSP, 401k, etc.)
+- **Rate limiting**: Intelligent 60-second cooldown between price refreshes with extended 1-hour cooldown when rate limited
+- **Session state caching**: Prices cached in session to avoid unnecessary API calls
+- **Graceful fallback**: Automatically uses cached prices when yfinance is unavailable
+- **Account breakdown**: View portfolio value grouped by account
+- **Data provenance**: Clear indication of data source (Live/Cache/Mixed) and last update timestamp
+
+### Roadmap (Phase 2/3)
 
 - Schedule daily snapshots with APScheduler (skeleton in `portodash/scheduler.py`)
-- Add retry/fallback logic and caching
 - Add more charts and date range filters
+- Performance analytics and benchmarking
 
 ## Data Freshness and Provenance
 
@@ -113,8 +123,7 @@ The source indicator appears next to the "Last Updated" timestamp in the dashboa
 
 If yfinance is unavailable or fails, the app automatically falls back to the most recent cached prices from `historical.csv`, ensuring you always see your portfolio data even during network issues.
 
-Scheduler (standalone)
-----------------------
+## Scheduler (standalone)
 
 You can run the scheduler as a separate process to save daily snapshots to `historical.csv` without running the Streamlit UI. The scheduler writes a small status file `logs/scheduler_status.json` which the Streamlit app reads to show scheduler status.
 
@@ -131,8 +140,7 @@ Notes:
 - The scheduler will append snapshots to `historical.csv` and write logs to `logs/scheduler_YYYYMMDD.log`.
 - The scheduler also writes `logs/scheduler_status.json` with keys: `last_run`, `next_run`, `job_running`, `last_error`.
 
-Helpful tooling
----------------
+## Helpful tooling
 
 - `psutil` (optional): if installed, the dashboard can detect the scheduler process directly. Install with:
 
@@ -140,8 +148,7 @@ Helpful tooling
 python -m pip install psutil
 ```
 
-Service / boot integration (macOS LaunchAgent example)
---------------------------------------------------
+## Service / boot integration (macOS LaunchAgent example)
 
 Below is a minimal LaunchAgent plist you can use to run the scheduler on login. Save it as `~/Library/LaunchAgents/com.yourname.portodash.scheduler.plist` and `launchctl load` it.
 
@@ -166,15 +173,12 @@ Replace `/path/to` with your project path and adjust the Python interpreter if y
         <key>StandardOutPath</key>
         <string>/Users/yourname/Projects/portodash/logs/scheduler_launchtmp.out</string>
         <key>StandardErrorPath</key>
-        <string>/Users/yourname/Projects/portodash/logs/scheduler_launchtmp.err</string>
-        </dict>
+                <string>/Users/yourname/Projects/portodash/logs/scheduler_launchtmp.err</string>
+                </dict>
 </plist>
 ```
 
-Development
------------
+## Development
 
 Commits to this repository are made through a bot account (@regisca-bot) to properly track automated changes.
 
-````
-```
