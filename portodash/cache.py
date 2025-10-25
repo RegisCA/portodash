@@ -30,8 +30,12 @@ def get_cached_prices(tickers, csv_path, max_age_hours=24):
             return {t: None for t in tickers}, {t: None for t in tickers}
 
         # Get latest price for each ticker within max age
-        now = pd.to_datetime(datetime.utcnow())
+        now = pd.to_datetime(datetime.utcnow()).tz_localize(pytz.UTC)
         cutoff = now - timedelta(hours=max_age_hours)
+
+        # Ensure date column is tz-aware for comparison
+        if df['date'].dt.tz is None:
+            df['date'] = df['date'].dt.tz_localize(pytz.UTC)
 
         recent = df[df['date'] >= cutoff]
         if recent.empty:
