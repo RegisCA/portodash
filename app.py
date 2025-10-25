@@ -311,7 +311,7 @@ def main():
     
     # Show account breakdown if viewing all accounts
     if selected_account == 'All Accounts' and 'account' in df.columns:
-        st.markdown("#### By Account (CAD)")
+        st.markdown("#### By Account (CAD equivalent)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
             'current_value': 'sum',
@@ -321,25 +321,99 @@ def main():
         accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
         accounts_df = accounts_df.sort_values('current_value', ascending=False)
         
-        st.dataframe(accounts_df.style.format({
+        # Apply color formatting for gain_pct
+        def color_gain_pct(val):
+            if pd.isna(val) or val is None:
+                return ''
+            color = '#90ee90' if val > 0 else '#ffcccb' if val < 0 else ''
+            return f'background-color: {color}'
+        
+        st.dataframe(
+            accounts_df.style.format({
+                'current_value': '${:,.2f}',
+                'cost_total': '${:,.2f}',
+                'gain': '${:,.2f}',
+                'gain_pct': '{:.2%}'
+            }).map(color_gain_pct, subset=['gain_pct']),
+            width='stretch',
+            column_config={
+                'account': st.column_config.TextColumn('Account', width='medium'),
+                'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+                'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
+                'gain': st.column_config.NumberColumn('Gain', width='medium'),
+                'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            }
+        )
+        
+        st.markdown("#### All Holdings (values in CAD equivalent)")
+    
+    # Apply color formatting for gain_pct
+    def color_gain_pct(val):
+        if pd.isna(val) or val is None:
+            return ''
+        color = '#90ee90' if val > 0 else '#ffcccb' if val < 0 else ''
+        return f'background-color: {color}'
+    
+    # Split dataframe into holdings and total row
+    df_holdings = df[df['ticker'] != 'TOTAL'].copy()
+    df_total = df[df['ticker'] == 'TOTAL'].copy()
+    
+    # Display holdings table (sortable)
+    st.dataframe(
+        df_holdings.style.format({
+            'shares': '{:,.4f}',
+            'cost_basis': '{:,.4f}',
+            'price': '${:,.4f}',
             'current_value': '${:,.2f}',
             'cost_total': '${:,.2f}',
             'gain': '${:,.2f}',
+            'allocation_pct': '{:.2%}',
             'gain_pct': '{:.2%}'
-        }))
-        
-        st.markdown("#### All Holdings (values in CAD)")
+        }).map(color_gain_pct, subset=['gain_pct']),
+        width='stretch',
+        column_config={
+            'account': st.column_config.TextColumn('Account', width='medium'),
+            'ticker': st.column_config.TextColumn('Ticker', width='small'),
+            'currency': st.column_config.TextColumn('Currency', width='small'),
+            'shares': st.column_config.NumberColumn('Shares', width='small'),
+            'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
+            'price': st.column_config.NumberColumn('Price', width='small'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
+            'gain': st.column_config.NumberColumn('Gain', width='medium'),
+            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+        },
+    )
     
-    st.dataframe(df.style.format({
-        'shares': '{:,.4f}',
-        'cost_basis': '{:,.4f}',
-        'price': '${:,.4f}',
-        'current_value': '${:,.2f}',
-        'cost_total': '${:,.2f}',
-        'gain': '${:,.2f}',
-        'allocation_pct': '{:.2%}',
-        'gain_pct': '{:.2%}'
-    }))
+    # Display total row separately (not sortable)
+    st.dataframe(
+        df_total.style.format({
+            'shares': '{:,.4f}',
+            'cost_basis': '{:,.4f}',
+            'price': '${:,.4f}',
+            'current_value': '${:,.2f}',
+            'cost_total': '${:,.2f}',
+            'gain': '${:,.2f}',
+            'allocation_pct': '{:.2%}',
+            'gain_pct': '{:.2%}'
+        }),
+        width='stretch',
+        column_config={
+            'account': st.column_config.TextColumn('Account', width='medium'),
+            'ticker': st.column_config.TextColumn('Ticker', width='small'),
+            'currency': st.column_config.TextColumn('Currency', width='small'),
+            'shares': st.column_config.NumberColumn('Shares', width='small'),
+            'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
+            'price': st.column_config.NumberColumn('Price', width='small'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
+            'gain': st.column_config.NumberColumn('Gain', width='medium'),
+            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+        },
+        hide_index=True,
+    )
 
     # Allocation chart
     st.subheader('Allocation')
