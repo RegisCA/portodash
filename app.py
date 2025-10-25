@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import pytz
 
 import pandas as pd
-import streamlit as st
+import streamlit as st # type: ignore
 
 from portodash.data_fetch import get_current_prices, get_historical_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
@@ -141,8 +141,8 @@ def main():
                 st.sidebar.error(f"Could not load cached prices: {e}")
     
     if should_fetch:
-        with st.sidebar:
-            st.text('Fetching latest prices...')
+        status_placeholder = st.sidebar.empty()
+        status_placeholder.info('🔄 Fetching latest prices...')
         
         try:
             prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
@@ -155,7 +155,13 @@ def main():
             st.session_state.last_error = None
             st.session_state.rate_limited_until = None
             
+            # Clear the fetching message
+            status_placeholder.empty()
+            
         except Exception as e:
+            # Clear the fetching message on error too
+            status_placeholder.empty()
+            
             # Check if it's a rate limit error
             error_msg = str(e)
             if 'YFRateLimitError' in error_msg or 'Rate limited' in error_msg or 'Too Many Requests' in error_msg:
