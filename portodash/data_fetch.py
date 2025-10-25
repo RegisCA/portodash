@@ -6,7 +6,6 @@ import logging
 import pytz
 
 from .cache import get_cached_prices
-from .alpha_vantage import get_alpha_vantage_api_key, fetch_prices_alpha_vantage
 
 
 logger = logging.getLogger(__name__)
@@ -59,26 +58,7 @@ def get_current_prices(tickers, csv_path=None):
             prices[t] = None
             origins[t] = None
 
-    # If any prices are missing, try Alpha Vantage as fallback
-    missing_tickers = [t for t in tickers if prices.get(t) is None]
-    if missing_tickers:
-        av_api_key = get_alpha_vantage_api_key()
-        if av_api_key:
-            logger.info(f"Attempting Alpha Vantage fallback for {len(missing_tickers)} tickers")
-            try:
-                av_prices = fetch_prices_alpha_vantage(missing_tickers, av_api_key)
-                for t in missing_tickers:
-                    if av_prices.get(t) is not None:
-                        prices[t] = av_prices[t]
-                        origins[t] = 'alphavantage'
-                        times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
-                        logger.info(f"Got {t} from Alpha Vantage: {av_prices[t]}")
-            except Exception:
-                logger.exception("Failed to fetch from Alpha Vantage")
-        else:
-            logger.info("Alpha Vantage API key not available (set ALPHAVANTAGE_API_KEY environment variable)")
-
-    # If any prices are still missing and we have a cache path, try cache
+    # If any prices are missing and we have a cache path, try cache
     if csv_path and any(p is None for p in prices.values()):
         cached_prices, cached_times = get_cached_prices(tickers, csv_path)
         for t in tickers:
