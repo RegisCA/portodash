@@ -5,7 +5,7 @@ Lightweight Streamlit portfolio tracker using yfinance, pandas and Plotly.
 Features (Phase 1):
 
 - Load holdings from `portfolio.json` (private file, not tracked in git)
-- Fetch current prices using `yfinance` on page load
+- Fetch current prices using **Financial Modeling Prep API** (primary) with fallback to **yfinance** for reliability
 - Portfolio summary table with cost, current value and gains
 - Allocation pie chart (Plotly)
 - 30-day performance line chart (Plotly)
@@ -49,6 +49,14 @@ Notes:
 
 ## Installation
 
+### Prerequisites
+
+1. **Get a Financial Modeling Prep API Key** (recommended):
+   - Visit [financialmodelingprep.com](https://site.financialmodelingprep.com/developer/docs/)
+   - Sign up for a free account (no credit card required)
+   - Copy your API key from the dashboard
+   - Free tier includes 250 requests/hour (more than sufficient for portfolio tracking)
+
 ### Quick Start with venv
 
 1. Create and activate a Python environment (recommended). On macOS use `python3` (many systems don't have a `python` alias):
@@ -65,7 +73,21 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-1. Start the app:
+2. **Configure environment variables**:
+
+```bash
+cp .env.sample .env
+```
+
+Edit `.env` and add your FMP API key:
+
+```bash
+FMP_API_KEY=your_fmp_api_key_here
+```
+
+The app will work without an API key using cached data, but fresh price updates require the FMP key.
+
+3. Start the app:
 
 ```bash
 streamlit run app.py

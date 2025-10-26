@@ -6,6 +6,7 @@ import logging
 import pytz
 
 from .cache import get_cached_prices
+from .fmp import get_fmp_api_key, fetch_batch_quotes_fmp
 
 
 logger = logging.getLogger(__name__)
@@ -19,44 +20,66 @@ def get_current_prices(tickers, csv_path=None):
     - prices_dict: mapping ticker -> price (float or None)
     - fetched_at_iso: ISO-format UTC timestamp representing the authoritative
       timestamp for the returned prices (e.g. cache record time or fetch time)
-    - source: one of 'live', 'cache', or 'mixed' depending on origins
+    - source: one of 'fmp', 'yfinance', 'cache', or 'mixed' depending on origins
     """
     prices = {t: None for t in tickers}
-    origins = {t: None for t in tickers}  # 'live' or 'cache'
+    origins = {t: None for t in tickers}  # 'fmp', 'yfinance', or 'cache'
     times = {t: None for t in tickers}  # ISO timestamps per-ticker
 
-    # Attempt live fetch via yfinance
-    try:
-        data = yf.download(tickers=" ".join(tickers), period="5d", interval="1d", group_by='ticker', threads=True, progress=False, auto_adjust=False)
-
-        if isinstance(data.columns, pd.MultiIndex):
+    # Attempt live fetch via FMP (primary)
+    fmp_api_key = get_fmp_api_key()
+    if fmp_api_key:
+        logger.info(f"Attempting to fetch {len(tickers)} tickers from FMP")
+        try:
+            fmp_prices = fetch_batch_quotes_fmp(tickers, fmp_api_key)
+            now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+            
             for t in tickers:
+                if fmp_prices.get(t) is not None:
+                    prices[t] = fmp_prices[t]
+                    origins[t] = 'fmp'
+                    times[t] = now_utc
+                    logger.info(f"Got {t} from FMP: ${fmp_prices[t]}")
+        except Exception:
+            logger.exception("Failed to fetch prices from FMP")
+    else:
+        logger.info("FMP API key not available (set FMP_API_KEY environment variable)")
+
+    # If any prices are still missing, try yfinance as fallback
+    missing_tickers = [t for t in tickers if prices.get(t) is None]
+    if missing_tickers:
+        logger.info(f"Attempting yfinance fallback for {len(missing_tickers)} tickers")
+        try:
+            data = yf.download(tickers=" ".join(missing_tickers), period="5d", interval="1d", group_by='ticker', threads=True, progress=False, auto_adjust=False)
+
+            if isinstance(data.columns, pd.MultiIndex):
+                for t in missing_tickers:
+                    try:
+                        ser = data[t]["Adj Close"].dropna()
+                        prices[t] = float(ser.iloc[-1])
+                        origins[t] = 'yfinance'
+                        times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+                    except Exception:
+                        prices[t] = None
+                        origins[t] = None
+            else:
+                # single ticker or simplified DF
                 try:
-                    ser = data[t]["Adj Close"].dropna()
-                    prices[t] = float(ser.iloc[-1])
-                    origins[t] = 'live'
-                    times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+                    ser = data["Adj Close"].dropna()
+                    last = float(ser.iloc[-1])
+                    for t in missing_tickers:
+                        prices[t] = last
+                        origins[t] = 'yfinance'
+                        times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
                 except Exception:
-                    prices[t] = None
-                    origins[t] = None
-        else:
-            # single ticker or simplified DF
-            try:
-                ser = data["Adj Close"].dropna()
-                last = float(ser.iloc[-1])
-                for t in tickers:
-                    prices[t] = last
-                    origins[t] = 'live'
-                    times[t] = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
-            except Exception:
-                for t in tickers:
-                    prices[t] = None
-                    origins[t] = None
-    except Exception:
-        logger.exception("Failed to fetch current prices from yfinance")
-        for t in tickers:
-            prices[t] = None
-            origins[t] = None
+                    for t in missing_tickers:
+                        prices[t] = None
+                        origins[t] = None
+        except Exception:
+            logger.exception("Failed to fetch prices from yfinance")
+            for t in missing_tickers:
+                prices[t] = None
+                origins[t] = None
 
     # If any prices are missing and we have a cache path, try cache
     if csv_path and any(p is None for p in prices.values()):
@@ -89,7 +112,7 @@ def get_current_prices(tickers, csv_path=None):
         # no timestamps available: use now UTC
         fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
 
-    # Source: 'live' if all live, 'cache' if all cache, else 'mixed'
+    # Source: 'fmp', 'yfinance', or 'cache' if all from one source, else 'mixed'
     uniq = set(o for o in origins.values() if o is not None)
     if len(uniq) == 1:
         source = list(uniq)[0]
