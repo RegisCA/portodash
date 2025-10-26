@@ -20,14 +20,41 @@ def get_current_prices(tickers, csv_path=None):
     - fetched_at_iso: ISO-format UTC timestamp representing the authoritative
       timestamp for the returned prices (e.g. cache record time or fetch time)
     - source: one of 'live', 'cache', or 'mixed' depending on origins
+    
+    yfinance Best Practices Applied:
+    - threads=True: Enables parallel fetching (defaults to 2x CPU cores)
+    - timeout=30: Extended timeout to reduce transient failures
+    - period="5d": Short period to minimize data transfer and processing
+    - progress=False: Disables progress bar for cleaner logs
+    - YFRateLimitError detection: Gracefully falls back to cache on rate limits
+    
+    Note: yfinance has no official rate limits as it scrapes Yahoo Finance.
+    Rate limiting is Yahoo's protection mechanism and varies unpredictably.
+    Each ticker requires a separate HTTP request (no batch API exists).
     """
     prices = {t: None for t in tickers}
     origins = {t: None for t in tickers}  # 'live' or 'cache'
     times = {t: None for t in tickers}  # ISO timestamps per-ticker
 
-    # Attempt live fetch via yfinance
+    # Attempt live fetch via yfinance with optimized parameters
     try:
-        data = yf.download(tickers=" ".join(tickers), period="5d", interval="1d", group_by='ticker', threads=True, progress=False, auto_adjust=False)
+        # Import YFRateLimitError for detection
+        try:
+            from yfinance.exceptions import YFRateLimitError
+        except ImportError:
+            # Older versions of yfinance don't have this exception
+            YFRateLimitError = None
+        
+        data = yf.download(
+            tickers=" ".join(tickers), 
+            period="5d", 
+            interval="1d", 
+            group_by='ticker', 
+            threads=True,  # Enable parallel fetching
+            progress=False, 
+            auto_adjust=False,
+            timeout=30  # Extended timeout (default is 10s)
+        )
 
         if isinstance(data.columns, pd.MultiIndex):
             for t in tickers:
@@ -52,8 +79,23 @@ def get_current_prices(tickers, csv_path=None):
                 for t in tickers:
                     prices[t] = None
                     origins[t] = None
-    except Exception:
-        logger.exception("Failed to fetch current prices from yfinance")
+    except Exception as e:
+        # Check if it's a rate limit error
+        is_rate_limit = False
+        if YFRateLimitError and isinstance(e, YFRateLimitError):
+            is_rate_limit = True
+            logger.warning(f"Yahoo Finance rate limit detected. Falling back to cache.")
+        elif "429" in str(e) or "Too Many Requests" in str(e):
+            is_rate_limit = True
+            logger.warning(f"Yahoo Finance rate limit detected (429 error). Falling back to cache.")
+        
+        if is_rate_limit:
+            # Don't log full exception for rate limits, it's expected
+            logger.info("Rate limit hit - will use cached data if available")
+        else:
+            # Log full exception for other errors
+            logger.exception("Failed to fetch current prices from yfinance")
+        
         for t in tickers:
             prices[t] = None
             origins[t] = None
@@ -105,9 +147,22 @@ def get_historical_prices(tickers, period="30d"):
     """Return DataFrame of adjusted close prices with dates as index and columns as tickers.
 
     period examples: '30d', '90d', '1y'
+    
+    Optimized for yfinance:
+    - threads=False: Historical data fetches are already optimized by Yahoo
+    - progress=False: Cleaner output
+    - timeout=30: Extended timeout for larger datasets
     """
     try:
-        df = yf.download(tickers=" ".join(tickers), period=period, interval="1d", auto_adjust=True, progress=False)
+        df = yf.download(
+            tickers=" ".join(tickers), 
+            period=period, 
+            interval="1d", 
+            auto_adjust=True, 
+            progress=False,
+            threads=False,  # Historical fetches don't benefit from threading
+            timeout=30
+        )
         # If multi-index columns (multiple tickers)
         if isinstance(df.columns, pd.MultiIndex):
             adj = df['Adj Close']
