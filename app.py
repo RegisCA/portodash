@@ -43,6 +43,8 @@ def main():
         st.session_state.rate_limited_until = None
     if 'last_error' not in st.session_state:
         st.session_state.last_error = None
+    if 'fetch_in_progress' not in st.session_state:
+        st.session_state.fetch_in_progress = False
     # Cache for historical data (keyed by days parameter to avoid refetching on slider change)
     if 'historical_cache' not in st.session_state:
         st.session_state.historical_cache = {}
@@ -93,13 +95,17 @@ def main():
             st.session_state.rate_limited_until = None
             st.session_state.last_error = None
     
-    # Check normal cooldown
-    if can_refresh and st.session_state.last_fetch_time:
+    # Check normal cooldown - only enforce if a fetch actually happened
+    # (not just because time passed since last fetch during unrelated reruns)
+    if can_refresh and st.session_state.last_fetch_time and st.session_state.fetch_in_progress:
         elapsed = (now - st.session_state.last_fetch_time).total_seconds()
         if elapsed < COOLDOWN_SECONDS:
             can_refresh = False
             cooldown_remaining = int(COOLDOWN_SECONDS - elapsed)
             button_label = f'Refresh prices (wait {cooldown_remaining}s)'
+        else:
+            # Cooldown period expired, clear the flag
+            st.session_state.fetch_in_progress = False
     
     # Refresh button with appropriate state
     if can_refresh:
@@ -148,6 +154,9 @@ def main():
     if should_fetch:
         status_placeholder = st.sidebar.empty()
         status_placeholder.info('🔄 Fetching latest prices...')
+        
+        # Mark that a fetch is in progress for cooldown tracking
+        st.session_state.fetch_in_progress = True
         
         try:
             prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
@@ -261,10 +270,16 @@ def main():
                     try:
                         nr = datetime.fromisoformat(status_json.get('next_run'))
                         nr_local = nr.astimezone(tz)
-                        st.info(f"📅 Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                        # Check if next_run is in the past (stale status file)
+                        if nr_local < datetime.now(tz):
+                            # Status file is stale - scheduler probably not running
+                            st.warning(f"⚠️ Scheduler status outdated (last update: {nr_local.strftime('%Y-%m-%d %H:%M')}). Scheduler may not be running.")
+                        else:
+                            st.info(f"📅 Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                        shown = True
                     except Exception:
                         st.info('📅 Next scheduled update available')
-                    shown = True
+                        shown = True
                 elif status_json.get('last_error'):
                     st.error(f"❌ Last scheduler error: {status_json.get('last_error')}")
                     shown = True
