@@ -450,7 +450,20 @@ def main():
     # Check if we have cached data for this combination
     # Refresh cache if: 1) no cache exists, 2) manual refresh clicked, or 3) cache is stale (>1 hour)
     needs_hist_fetch = False
-    if cache_key not in st.session_state.historical_cache:
+    perf_fig = None  # Initialize to None
+    
+    # Don't attempt to fetch if we're rate-limited
+    if st.session_state.rate_limited_until and now < st.session_state.rate_limited_until:
+        # Rate-limited: skip fetch, use cached data if available
+        if cache_key not in st.session_state.historical_cache:
+            # No cached data for this period, show message
+            st.info(f"📊 Historical data unavailable (rate limited). Please try again after {st.session_state.rate_limited_until.strftime('%H:%M')}.")
+        else:
+            # Use existing cached data
+            hist = st.session_state.historical_cache[cache_key]
+            perf_fig = make_30d_performance_chart(hist, holdings)
+        needs_hist_fetch = False
+    elif cache_key not in st.session_state.historical_cache:
         needs_hist_fetch = True
     elif refresh:
         # User clicked refresh - update historical data too
@@ -466,20 +479,23 @@ def main():
             hist = get_historical_prices(tickers, period=f"{days}d")
             st.session_state.historical_cache[cache_key] = hist
             st.session_state.historical_fetch_time[cache_key] = now
+            perf_fig = make_30d_performance_chart(hist, holdings)
         except Exception as e:
             # If fetch fails, try to use stale cache or empty dataframe
             if cache_key in st.session_state.historical_cache:
                 hist = st.session_state.historical_cache[cache_key]
                 st.warning(f"Using cached historical data (fetch failed: {str(e)[:100]})")
+                perf_fig = make_30d_performance_chart(hist, holdings)
             else:
-                hist = pd.DataFrame()
                 st.error(f"Failed to fetch historical data: {str(e)[:100]}")
-    else:
+                perf_fig = None
+    elif cache_key in st.session_state.historical_cache:
         # Use cached historical data
         hist = st.session_state.historical_cache[cache_key]
+        perf_fig = make_30d_performance_chart(hist, holdings)
     
-    perf_fig = make_30d_performance_chart(hist, holdings)
-    st.plotly_chart(perf_fig, use_container_width=True)
+    if perf_fig is not None:
+        st.plotly_chart(perf_fig, use_container_width=True)
 
     # Snapshot storage
     if st.button('Save snapshot to CSV'):
