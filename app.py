@@ -43,6 +43,11 @@ def main():
         st.session_state.rate_limited_until = None
     if 'last_error' not in st.session_state:
         st.session_state.last_error = None
+    # Cache for historical data (keyed by days parameter to avoid refetching on slider change)
+    if 'historical_cache' not in st.session_state:
+        st.session_state.historical_cache = {}
+    if 'historical_fetch_time' not in st.session_state:
+        st.session_state.historical_fetch_time = {}
 
     # Load portfolio first
     try:
@@ -422,7 +427,42 @@ def main():
 
     # 30-day performance
     st.subheader(f'Performance — Last {days} days')
-    hist = get_historical_prices(tickers, period=f"{days}d")
+    
+    # Cache historical data to avoid refetching on every slider change
+    # Key by (tickers_tuple, days) to handle both ticker and period changes
+    cache_key = (tuple(sorted(tickers)), days)
+    
+    # Check if we have cached data for this combination
+    # Refresh cache if: 1) no cache exists, 2) manual refresh clicked, or 3) cache is stale (>1 hour)
+    needs_hist_fetch = False
+    if cache_key not in st.session_state.historical_cache:
+        needs_hist_fetch = True
+    elif refresh:
+        # User clicked refresh - update historical data too
+        needs_hist_fetch = True
+    elif cache_key in st.session_state.historical_fetch_time:
+        # Check if cache is stale (older than 1 hour)
+        last_hist_fetch = st.session_state.historical_fetch_time[cache_key]
+        if (now - last_hist_fetch).total_seconds() > 3600:
+            needs_hist_fetch = True
+    
+    if needs_hist_fetch:
+        try:
+            hist = get_historical_prices(tickers, period=f"{days}d")
+            st.session_state.historical_cache[cache_key] = hist
+            st.session_state.historical_fetch_time[cache_key] = now
+        except Exception as e:
+            # If fetch fails, try to use stale cache or empty dataframe
+            if cache_key in st.session_state.historical_cache:
+                hist = st.session_state.historical_cache[cache_key]
+                st.warning(f"Using cached historical data (fetch failed: {str(e)[:100]})")
+            else:
+                hist = pd.DataFrame()
+                st.error(f"Failed to fetch historical data: {str(e)[:100]}")
+    else:
+        # Use cached historical data
+        hist = st.session_state.historical_cache[cache_key]
+    
     perf_fig = make_30d_performance_chart(hist, holdings)
     st.plotly_chart(perf_fig, use_container_width=True)
 
