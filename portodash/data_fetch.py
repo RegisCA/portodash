@@ -11,7 +11,7 @@ from .cache import get_cached_prices
 logger = logging.getLogger(__name__)
 
 
-def get_current_prices(tickers, csv_path=None):
+def get_current_prices(tickers, csv_path=None, cache_max_age_hours=72):
     """Fetch most recent available adjusted close prices for tickers.
 
     Returns a tuple: (prices_dict, fetched_at_iso, source)
@@ -31,19 +31,23 @@ def get_current_prices(tickers, csv_path=None):
     Note: yfinance has no official rate limits as it scrapes Yahoo Finance.
     Rate limiting is Yahoo's protection mechanism and varies unpredictably.
     Each ticker requires a separate HTTP request (no batch API exists).
+    
+    Cache fallback: If yfinance fails, cached prices up to cache_max_age_hours old
+    (default 72 hours) are used. This ensures data availability during rate limits.
     """
     prices = {t: None for t in tickers}
     origins = {t: None for t in tickers}  # 'live' or 'cache'
     times = {t: None for t in tickers}  # ISO timestamps per-ticker
 
+    # Import YFRateLimitError for detection (do this at function level)
+    try:
+        from yfinance.exceptions import YFRateLimitError
+    except ImportError:
+        # Older versions of yfinance don't have this exception
+        YFRateLimitError = None
+
     # Attempt live fetch via yfinance with optimized parameters
     try:
-        # Import YFRateLimitError for detection
-        try:
-            from yfinance.exceptions import YFRateLimitError
-        except ImportError:
-            # Older versions of yfinance don't have this exception
-            YFRateLimitError = None
         
         data = yf.download(
             tickers=" ".join(tickers), 
@@ -84,10 +88,10 @@ def get_current_prices(tickers, csv_path=None):
         is_rate_limit = False
         if YFRateLimitError and isinstance(e, YFRateLimitError):
             is_rate_limit = True
-            logger.warning(f"Yahoo Finance rate limit detected. Falling back to cache.")
-        elif "429" in str(e) or "Too Many Requests" in str(e):
+            logger.warning("Yahoo Finance rate limit detected (YFRateLimitError). Falling back to cache.")
+        elif "429" in str(e) or "Too Many Requests" in str(e) or "Rate limited" in str(e):
             is_rate_limit = True
-            logger.warning(f"Yahoo Finance rate limit detected (429 error). Falling back to cache.")
+            logger.warning(f"Yahoo Finance rate limit detected: {str(e)[:200]}. Falling back to cache.")
         
         if is_rate_limit:
             # Don't log full exception for rate limits, it's expected
@@ -102,7 +106,7 @@ def get_current_prices(tickers, csv_path=None):
 
     # If any prices are missing and we have a cache path, try cache
     if csv_path and any(p is None for p in prices.values()):
-        cached_prices, cached_times = get_cached_prices(tickers, csv_path)
+        cached_prices, cached_times = get_cached_prices(tickers, csv_path, max_age_hours=cache_max_age_hours)
         for t in tickers:
             if prices.get(t) is None and cached_prices.get(t) is not None:
                 prices[t] = cached_prices[t]
