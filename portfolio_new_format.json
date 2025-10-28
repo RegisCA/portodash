@@ -1,133 +1,95 @@
 {
     "accounts": [
         {
-            "nickname": "Main Tax-Free",
-            "holder": "Regis",
+            "nickname": "Primary TFSA",
+            "holder": "Person A",
             "type": "TFSA",
             "base_currency": "CAD",
             "holdings": [
                 {
                     "ticker": "XEQT.TO",
-                    "shares": 408.6366,
-                    "cost_basis": 39.41,
-                    "currency": "CAD"
-                },
-                {
-                    "ticker": "XCH.TO",
-                    "shares": 408,
-                    "cost_basis": 26.77,
-                    "currency": "CAD"
-                }
-            ]
-        },
-        {
-            "nickname": "Spouse TFSA",
-            "holder": "Spouse",
-            "type": "TFSA",
-            "base_currency": "CAD",
-            "holdings": [
-                {
-                    "ticker": "XEQT.TO",
-                    "shares": 637.0603,
-                    "cost_basis": 39.52,
+                    "shares": 250.5,
+                    "cost_basis": 38.00,
                     "currency": "CAD"
                 },
                 {
                     "ticker": "ZAG.TO",
-                    "shares": 771.8494,
-                    "cost_basis": 14.08,
+                    "shares": 300,
+                    "cost_basis": 15.50,
                     "currency": "CAD"
                 }
             ]
         },
         {
-            "nickname": "Retirement Fund",
-            "holder": "Regis",
+            "nickname": "Secondary TFSA",
+            "holder": "Person B",
+            "type": "TFSA",
+            "base_currency": "CAD",
+            "holdings": [
+                {
+                    "ticker": "VGRO.TO",
+                    "shares": 400,
+                    "cost_basis": 32.25,
+                    "currency": "CAD"
+                }
+            ]
+        },
+        {
+            "nickname": "Retirement Account",
+            "holder": "Person A",
             "type": "RRSP",
             "base_currency": "CAD",
             "holdings": [
                 {
-                    "ticker": "XUU.TO",
-                    "shares": 286,
-                    "cost_basis": 70.41,
-                    "currency": "CAD"
-                },
-                {
-                    "ticker": "XEF.TO",
-                    "shares": 435.3223,
-                    "cost_basis": 46.56,
-                    "currency": "CAD"
-                },
-                {
-                    "ticker": "XEC.TO",
-                    "shares": 422.1901,
-                    "cost_basis": 37.20,
-                    "currency": "CAD"
+                    "ticker": "VTI",
+                    "shares": 100,
+                    "cost_basis": 220.00,
+                    "currency": "USD"
                 },
                 {
                     "ticker": "XIC.TO",
-                    "shares": 394,
-                    "cost_basis": 48.44,
-                    "currency": "CAD"
-                },
-                {
-                    "ticker": "XBB.TO",
-                    "shares": 800,
-                    "cost_basis": 28.71,
+                    "shares": 200,
+                    "cost_basis": 35.00,
                     "currency": "CAD"
                 }
             ]
         },
         {
-            "nickname": "US Retirement",
-            "holder": "Regis",
+            "nickname": "US Tax-Advantaged",
+            "holder": "Person A",
             "type": "Roth IRA",
             "base_currency": "USD",
             "holdings": [
                 {
-                    "ticker": "FFFFX",
-                    "shares": 36299.62,
-                    "cost_basis": 9.64,
+                    "ticker": "VOO",
+                    "shares": 50,
+                    "cost_basis": 400.00,
                     "currency": "USD"
                 },
                 {
-                    "ticker": "FBGRX",
-                    "shares": 996.787,
-                    "cost_basis": 152.03,
+                    "ticker": "BND",
+                    "shares": 150,
+                    "cost_basis": 78.50,
                     "currency": "USD"
                 }
             ]
         },
         {
-            "nickname": "Spouse US Retirement",
-            "holder": "Spouse",
-            "type": "Roth IRA",
-            "base_currency": "USD",
-            "holdings": [
-                {
-                    "ticker": "FFFFX",
-                    "shares": 2082.877,
-                    "cost_basis": 9.85,
-                    "currency": "USD"
-                }
-            ]
-        },
-        {
-            "nickname": "Joint Investment",
+            "nickname": "Taxable Account",
             "holder": "joint",
             "type": "non-registered",
             "base_currency": "CAD",
             "holdings": [
                 {
                     "ticker": "XEQT.TO",
-                    "shares": 7730.8065,
-                    "cost_basis": 39.52,
+                    "shares": 1000,
+                    "cost_basis": 35.00,
                     "currency": "CAD"
                 },
                 {
-                    "ticker": "VE.TO",
-                    "shares": 1580.2247,
-                    "cost_basis": 43.86,
+                    "ticker": "VCN.TO",
+                    "shares": 500,
+                    "cost_basis": 42.00,
                     "currency": "CAD"
                 }
             ]
