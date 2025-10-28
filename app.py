@@ -384,6 +384,11 @@ def main():
 
     df = compute_portfolio_df(holdings, prices, fx_rates=fx_rates, base_currency='CAD')
 
+    # Check if we have any data to display
+    if df.empty or len(holdings) == 0:
+        st.warning("📭 No holdings to display with current filter selections. Please adjust your filters.")
+        return
+
     # Summary KPIs - all values in CAD
     col1, col2, col3 = st.columns(3)
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
