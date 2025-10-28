@@ -5,7 +5,10 @@ import numpy as np
 def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currency='CAD'):
     """Return a DataFrame with portfolio calculations per ticker and totals.
 
-    holdings_list: list of dicts with keys ticker, shares, cost_basis, currency (optional), account (optional)
+    holdings_list: list of dicts with keys:
+        - ticker, shares, cost_basis, currency
+        - account_nickname (or 'account' for backward compatibility)
+        - optional: account_holder, account_type, account_base_currency
     prices_dict: dict ticker->price
     """
     rows = []
@@ -15,7 +18,8 @@ def compute_portfolio_df(holdings_list, prices_dict, fx_rates=None, base_currenc
         cost_basis = round(float(h.get('cost_basis', 0)), 4)
         # Determine currency for the holding (default base_currency)
         currency = h.get('currency', base_currency)
-        account = h.get('account', 'Default')
+        # Support both new (account_nickname) and old (account) field names
+        account = h.get('account_nickname') or h.get('account', 'Default')
         price_native = float(prices_dict.get(ticker) or 0.0)
 
         # Convert native price to base currency using fx_rates if provided

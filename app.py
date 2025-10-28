@@ -22,8 +22,48 @@ HIST_CSV = os.path.join(BASE_DIR, 'historical.csv')
 
 
 def load_portfolio(path):
+    """Load portfolio from new account-centric JSON structure.
+    
+    Returns:
+        dict with keys:
+        - 'accounts': list of account metadata dicts
+        - 'holdings': flat list of holdings with account metadata attached
+    """
     with open(path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+    
+    # Validate new structure
+    if 'accounts' not in data:
+        raise ValueError(
+            "Portfolio file must use new account-centric structure with 'accounts' key. "
+            "See portfolio_new_format.json for the required format."
+        )
+    
+    # Store accounts metadata
+    accounts = data['accounts']
+    
+    # Flatten holdings and enrich with account metadata
+    holdings = []
+    for account in accounts:
+        for holding in account.get('holdings', []):
+            # Create enriched holding with account metadata
+            enriched_holding = {
+                'ticker': holding['ticker'],
+                'shares': holding['shares'],
+                'cost_basis': holding['cost_basis'],
+                'currency': holding['currency'],
+                # Account metadata
+                'account_nickname': account['nickname'],
+                'account_holder': account['holder'],
+                'account_type': account['type'],
+                'account_base_currency': account['base_currency']
+            }
+            holdings.append(enriched_holding)
+    
+    return {
+        'accounts': accounts,
+        'holdings': holdings
+    }
 
 
 def main():
@@ -59,18 +99,32 @@ def main():
         return
 
     holdings = cfg.get('holdings', [])
+    accounts = cfg.get('accounts', [])
 
     # Sidebar
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
     
-    # Account filter - multi-select with all accounts selected by default
-    all_accounts = sorted(set(h.get('account', 'Default') for h in holdings))
-    selected_accounts = st.sidebar.multiselect(
+    # Account filter - multi-select using account nicknames with tooltips
+    # Build options list with nickname as value, and format string for display
+    account_options = []
+    account_display_map = {}
+    for account in accounts:
+        nickname = account['nickname']
+        account_type = account['type']
+        holder = account['holder']
+        # Create display string with nickname and metadata
+        display_name = f"{nickname}"
+        tooltip = f"{account_type} - {holder}"
+        account_options.append(nickname)
+        account_display_map[nickname] = tooltip
+    
+    selected_account_nicknames = st.sidebar.multiselect(
         'Filter by Account',
-        options=all_accounts,
-        default=all_accounts,
-        help='Select one or more accounts to filter. All accounts selected by default.'
+        options=account_options,
+        default=account_options,
+        help='Select one or more accounts to filter. Hover over account names for details.',
+        format_func=lambda x: f"{x} ({account_display_map[x]})"
     )
     
     # Rate limiting: cooldown period in seconds
@@ -119,10 +173,10 @@ def main():
     if st.session_state.last_error:
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
-    # Apply account filter
-    if selected_accounts:
-        # Filter to only selected accounts
-        holdings = [h for h in holdings if h.get('account', 'Default') in selected_accounts]
+    # Apply account filter based on selected nicknames
+    if selected_account_nicknames:
+        # Filter holdings to only those from selected accounts
+        holdings = [h for h in holdings if h.get('account_nickname') in selected_account_nicknames]
     # If no accounts selected, show empty portfolio (user deselected all)
     
     tickers = [h['ticker'] for h in holdings]
@@ -333,7 +387,7 @@ def main():
     st.subheader('Holdings')
     
     # Show account breakdown if viewing multiple accounts
-    if len(selected_accounts) > 1 and 'account' in df.columns:
+    if len(selected_account_nicknames) > 1 and 'account' in df.columns:
         st.markdown("#### By Account (CAD equivalent)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
