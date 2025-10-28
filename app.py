@@ -64,12 +64,13 @@ def main():
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
     
-    # Account filter
+    # Account filter - multi-select with all accounts selected by default
     all_accounts = sorted(set(h.get('account', 'Default') for h in holdings))
-    selected_account = st.sidebar.selectbox(
+    selected_accounts = st.sidebar.multiselect(
         'Filter by Account',
-        options=['All Accounts'] + all_accounts,
-        index=0
+        options=all_accounts,
+        default=all_accounts,
+        help='Select one or more accounts to filter. All accounts selected by default.'
     )
     
     # Rate limiting: cooldown period in seconds
@@ -119,8 +120,10 @@ def main():
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
     # Apply account filter
-    if selected_account != 'All Accounts':
-        holdings = [h for h in holdings if h.get('account', 'Default') == selected_account]
+    if selected_accounts:
+        # Filter to only selected accounts
+        holdings = [h for h in holdings if h.get('account', 'Default') in selected_accounts]
+    # If no accounts selected, show empty portfolio (user deselected all)
     
     tickers = [h['ticker'] for h in holdings]
 
@@ -329,8 +332,8 @@ def main():
 
     st.subheader('Holdings')
     
-    # Show account breakdown if viewing all accounts
-    if selected_account == 'All Accounts' and 'account' in df.columns:
+    # Show account breakdown if viewing multiple accounts
+    if len(selected_accounts) > 1 and 'account' in df.columns:
         st.markdown("#### By Account (CAD equivalent)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
