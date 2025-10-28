@@ -185,9 +185,10 @@ def get_historical_prices(tickers, period="30d"):
 def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
     """Append a snapshot for each holding to csv_path.
 
-    holdings: list of dicts with keys ticker, shares, cost_basis, currency (optional), account (optional)
+    holdings: list of dicts with keys ticker, shares, cost_basis, account_nickname (or legacy 'account')
     prices: dict ticker->price
     Writes rows: date,account,ticker,shares,cost_basis,price,current_value,portfolio_value,allocation_pct
+    Note: 'account' column in CSV contains the account_nickname value for clarity
     """
     rows = []
     # Use provided fetched_at timestamp if available (should be ISO UTC),
@@ -207,7 +208,8 @@ def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
 
     for h in holdings:
         t = h.get('ticker')
-        account = h.get('account', 'Default')
+        # Use account_nickname (new format) with fallback to old 'account' field
+        account = h.get('account_nickname') or h.get('account', 'Default')
         shares = float(h.get('shares', 0))
         cost_basis = float(h.get('cost_basis', 0))
         price = prices.get(t) or 0.0
