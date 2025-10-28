@@ -22,8 +22,48 @@ HIST_CSV = os.path.join(BASE_DIR, 'historical.csv')
 
 
 def load_portfolio(path):
+    """Load portfolio from new account-centric JSON structure.
+    
+    Returns:
+        dict with keys:
+        - 'accounts': list of account metadata dicts
+        - 'holdings': flat list of holdings with account metadata attached
+    """
     with open(path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+    
+    # Validate new structure
+    if 'accounts' not in data:
+        raise ValueError(
+            "Portfolio file must use new account-centric structure with 'accounts' key. "
+            "See portfolio_new_format.json for the required format."
+        )
+    
+    # Store accounts metadata
+    accounts = data['accounts']
+    
+    # Flatten holdings and enrich with account metadata
+    holdings = []
+    for account in accounts:
+        for holding in account.get('holdings', []):
+            # Create enriched holding with account metadata
+            enriched_holding = {
+                'ticker': holding['ticker'],
+                'shares': holding['shares'],
+                'cost_basis': holding['cost_basis'],
+                'currency': holding['currency'],
+                # Account metadata
+                'account_nickname': account['nickname'],
+                'account_holder': account['holder'],
+                'account_type': account['type'],
+                'account_base_currency': account['base_currency']
+            }
+            holdings.append(enriched_holding)
+    
+    return {
+        'accounts': accounts,
+        'holdings': holdings
+    }
 
 
 def main():
@@ -59,18 +99,49 @@ def main():
         return
 
     holdings = cfg.get('holdings', [])
+    accounts = cfg.get('accounts', [])
 
     # Sidebar
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
     
-    # Account filter - multi-select with all accounts selected by default
-    all_accounts = sorted(set(h.get('account', 'Default') for h in holdings))
-    selected_accounts = st.sidebar.multiselect(
-        'Filter by Account',
-        options=all_accounts,
-        default=all_accounts,
-        help='Select one or more accounts to filter. All accounts selected by default.'
+    # Account filters - filter by nickname, holder, and/or account type
+    st.sidebar.subheader('Filter by Account')
+    
+    # Extract unique values for each filter dimension
+    all_nicknames = sorted(set(acc['nickname'] for acc in accounts))
+    all_holders = sorted(set(acc['holder'] for acc in accounts))
+    all_types = sorted(set(acc['type'] for acc in accounts))
+    
+    # Build account display map for showing details
+    account_display_map = {}
+    for account in accounts:
+        nickname = account['nickname']
+        account_display_map[nickname] = f"{account['type']} - {account['holder']}"
+    
+    # Filter 1: Account nickname (with type and holder in display)
+    selected_nicknames = st.sidebar.multiselect(
+        'Account Name',
+        options=all_nicknames,
+        default=all_nicknames,
+        format_func=lambda x: f"{x} ({account_display_map[x]})",
+        help='Filter by specific account names'
+    )
+    
+    # Filter 2: Account holder
+    selected_holders = st.sidebar.multiselect(
+        'Account Holder',
+        options=all_holders,
+        default=all_holders,
+        help='Filter by account holder (e.g., Person A, Person B, joint)'
+    )
+    
+    # Filter 3: Account type
+    selected_types = st.sidebar.multiselect(
+        'Account Type',
+        options=all_types,
+        default=all_types,
+        help='Filter by account type (TFSA, RRSP, Roth IRA, non-registered)'
     )
     
     # Rate limiting: cooldown period in seconds
@@ -119,11 +190,16 @@ def main():
     if st.session_state.last_error:
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
-    # Apply account filter
-    if selected_accounts:
-        # Filter to only selected accounts
-        holdings = [h for h in holdings if h.get('account', 'Default') in selected_accounts]
-    # If no accounts selected, show empty portfolio (user deselected all)
+    # Apply account filters - holdings must match ALL selected criteria (AND logic)
+    # Filter by nickname, holder, and type
+    if selected_nicknames or selected_holders or selected_types:
+        holdings = [
+            h for h in holdings
+            if (h.get('account_nickname') in selected_nicknames or not selected_nicknames)
+            and (h.get('account_holder') in selected_holders or not selected_holders)
+            and (h.get('account_type') in selected_types or not selected_types)
+        ]
+    # If all filters empty, show empty portfolio (user deselected everything)
     
     tickers = [h['ticker'] for h in holdings]
 
@@ -308,6 +384,11 @@ def main():
 
     df = compute_portfolio_df(holdings, prices, fx_rates=fx_rates, base_currency='CAD')
 
+    # Check if we have any data to display
+    if df.empty or len(holdings) == 0:
+        st.warning("📭 No holdings to display with current filter selections. Please adjust your filters.")
+        return
+
     # Summary KPIs - all values in CAD
     col1, col2, col3 = st.columns(3)
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
@@ -332,8 +413,10 @@ def main():
 
     st.subheader('Holdings')
     
-    # Show account breakdown if viewing multiple accounts
-    if len(selected_accounts) > 1 and 'account' in df.columns:
+    # Show account breakdown if viewing multiple accounts (based on filtered results)
+    # Count unique account nicknames in the filtered holdings
+    unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
+    if len(unique_accounts) > 1 and 'account' in df.columns:
         st.markdown("#### By Account (CAD equivalent)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({

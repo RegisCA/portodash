@@ -1,18 +1,32 @@
 {
-    "holdings": [
+    "accounts": [
         {
-            "ticker": "XEQT.TO",
-            "shares": 100.5,
-            "cost_basis": 39.13,
-            "currency": "CAD",
-            "account": "TFSA"
+            "nickname": "Main Tax-Free",
+            "holder": "Your Name",
+            "type": "TFSA",
+            "base_currency": "CAD",
+            "holdings": [
+                {
+                    "ticker": "XEQT.TO",
+                    "shares": 100.5,
+                    "cost_basis": 39.13,
+                    "currency": "CAD"
+                }
+            ]
         },
         {
-            "ticker": "SPY",
-            "shares": 50,
-            "cost_basis": 425.50,
-            "currency": "USD",
-            "account": "RRSP"
+            "nickname": "Retirement Fund",
+            "holder": "Your Name",
+            "type": "RRSP",
+            "base_currency": "CAD",
+            "holdings": [
+                {
+                    "ticker": "SPY",
+                    "shares": 50,
+                    "cost_basis": 425.50,
+                    "currency": "USD"
+                }
+            ]
         }
     ]
 }
