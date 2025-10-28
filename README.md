@@ -55,7 +55,7 @@ Notes:
 - **Privacy**: The `portfolio.json` file is git-ignored to keep your holdings private
 - **Historical Data**: Snapshots are saved to `historical.csv` (also git-ignored)
 
-See `portfolio.json.sample` and `portfolio_new_format.json` for complete examples.
+See `portfolio.json.sample` for a complete example.
 
 ## Installation
 
