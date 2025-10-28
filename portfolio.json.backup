@@ -1,0 +1,102 @@
+{
+    "holdings": [
+        {
+            "ticker": "FFFFX",
+            "shares": 36299.62,
+            "cost_basis": 9.64,
+            "currency": "USD",
+            "account": "R Roth IRA"
+        },
+        {
+            "ticker": "FBGRX",
+            "shares": 996.787,
+            "cost_basis": 152.03,
+            "currency": "USD",
+            "account": "R Roth IRA"
+        },
+        {
+            "ticker": "FFFFX",
+            "shares": 2082.877,
+            "cost_basis": 9.85,
+            "currency": "USD",
+            "account": "S Roth IRA"
+        },
+        {
+            "ticker": "XEQT.TO",
+            "shares": 408.6366,
+            "cost_basis": 39.41,
+            "currency": "CAD",
+            "account": "R TFSA"
+        },
+        {
+            "ticker": "XCH.TO",
+            "shares": 408,
+            "cost_basis": 26.77,
+            "currency": "CAD",
+            "account": "R TFSA"
+        },
+        {
+            "ticker": "XEQT.TO",
+            "shares": 637.0603,
+            "cost_basis": 39.52,
+            "currency": "CAD",
+            "account": "S TFSA"
+        },
+        {
+            "ticker": "ZAG.TO",
+            "shares": 771.8494,
+            "cost_basis": 14.08,
+            "currency": "CAD",
+            "account": "S TFSA"
+        },
+        {
+            "ticker": "XEQT.TO",
+            "shares": 7730.8065,
+            "cost_basis": 39.52,
+            "currency": "CAD",
+            "account": "Joint non-reg"
+        },
+        {
+            "ticker": "VE.TO",
+            "shares": 1580.2247,
+            "cost_basis": 43.86,
+            "currency": "CAD",
+            "account": "Joint non-reg"
+        },
+        {
+            "ticker": "XUU.TO",
+            "shares": 286,
+            "cost_basis": 70.41,
+            "currency": "CAD",
+            "account": "R RRSP"
+        },
+        {
+            "ticker": "XEF.TO",
+            "shares": 435.3223,
+            "cost_basis": 46.56,
+            "currency": "CAD",
+            "account": "R RRSP"
+        },
+        {
+            "ticker": "XEC.TO",
+            "shares": 422.1901,
+            "cost_basis": 37.20,
+            "currency": "CAD",
+            "account": "R RRSP"
+        },
+        {
+            "ticker": "XIC.TO",
+            "shares": 394,
+            "cost_basis": 48.44,
+            "currency": "CAD",
+            "account": "R RRSP"
+        },
+        {
+            "ticker": "XBB.TO",
+            "shares": 800,
+            "cost_basis": 28.71,
+            "currency": "CAD",
+            "account": "R RRSP"
+        }
+    ]
+}

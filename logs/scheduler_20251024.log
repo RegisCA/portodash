@@ -1,0 +1,28 @@
+2025-10-24 07:47:09,899 INFO: Starting PortoDash scheduler daemon
+2025-10-24 07:47:09,950 INFO: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-10-24 07:47:09,950 ERROR: Fatal error in scheduler daemon
+Traceback (most recent call last):
+  File "/Users/regis/Projects/portodash/scripts/run_scheduler.py", line 76, in main
+    scheduler = schedule_daily_snapshot(hist_csv, portfolio_path, timezone=timezone)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/regis/Projects/portodash/portodash/scheduler.py", line 111, in schedule_daily_snapshot
+    _status.update_run_times(next_=job.next_run_time)
+                                   ^^^^^^^^^^^^^^^^^
+AttributeError: 'Job' object has no attribute 'next_run_time'
+2025-10-24 10:03:36,454 INFO: Starting PortoDash scheduler daemon
+2025-10-24 10:03:36,485 INFO: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-10-24 10:03:36,486 INFO: Added job "price_snapshot" to job store "default"
+2025-10-24 10:03:36,486 INFO: Scheduler started
+2025-10-24 10:03:36,486 DEBUG: Looking for jobs to run
+2025-10-24 10:03:36,486 DEBUG: Next wakeup is due at 2025-10-24 16:30:00-04:00 (in 23183.513401 seconds)
+2025-10-24 10:03:36,486 INFO: Scheduler configured for daily snapshots at 4:30 PM (weekdays)
+2025-10-24 10:03:36,486 INFO: Scheduler running. View logs at: /Users/regis/Projects/portodash/logs/scheduler_20251024.log
+2025-10-24 10:18:17,756 INFO: Received signal 15, shutting down...
+2025-10-24 10:20:42,167 INFO: Starting PortoDash scheduler daemon
+2025-10-24 10:20:42,183 INFO: Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-10-24 10:20:42,184 INFO: Added job "price_snapshot" to job store "default"
+2025-10-24 10:20:42,184 INFO: Scheduler started
+2025-10-24 10:20:42,184 DEBUG: Looking for jobs to run
+2025-10-24 10:20:42,184 DEBUG: Next wakeup is due at 2025-10-24 16:30:00-04:00 (in 22157.815707 seconds)
+2025-10-24 10:20:42,184 INFO: Scheduler configured for daily snapshots at 4:30 PM (weekdays)
+2025-10-24 10:20:42,184 INFO: Scheduler running. View logs at: /Users/regis/Projects/portodash/logs/scheduler_20251024.log

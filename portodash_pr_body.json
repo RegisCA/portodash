@@ -1,0 +1,6 @@
+{
+  "title": "feat: scheduler status + multi-currency support (bot)",
+  "head": "feat/multi-currency-bot",
+  "base": "main",
+  "body": "Fixes:\\n- Closes #4 (APScheduler integration)\\n- Closes #5 (data last fetched timestamp)\\n- Fixes #6 (bot commit identification)\\n\\nThis PR:\\n- Persists scheduler status to logs/scheduler_status.json and updates Streamlit UI to read it\\n- Adds standalone scheduler runner and README docs\\n- Adds FX helper and converts holdings values to CAD (base currency) at display time\\n- Adds documentation about bot commits\\n\\nNotes:\\n- Holdings may specify an optional 'currency' field (e.g. 'USD', 'CAD'). If omitted, 'CAD' is assumed\\n- FX rates are fetched from exchangerate.host and cached in logs/fx_rates.json for 12 hours\\n- All commits in this branch are authored by @regisca-bot"
+}

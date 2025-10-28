@@ -105,26 +105,43 @@ def main():
     st.sidebar.header('Controls')
     days = st.sidebar.slider('Days for performance', min_value=7, max_value=365, value=30, step=1)
     
-    # Account filter - multi-select using account nicknames with tooltips
-    # Build options list with nickname as value, and format string for display
-    account_options = []
+    # Account filters - filter by nickname, holder, and/or account type
+    st.sidebar.subheader('Filter by Account')
+    
+    # Extract unique values for each filter dimension
+    all_nicknames = sorted(set(acc['nickname'] for acc in accounts))
+    all_holders = sorted(set(acc['holder'] for acc in accounts))
+    all_types = sorted(set(acc['type'] for acc in accounts))
+    
+    # Build account display map for showing details
     account_display_map = {}
     for account in accounts:
         nickname = account['nickname']
-        account_type = account['type']
-        holder = account['holder']
-        # Create display string with nickname and metadata
-        display_name = f"{nickname}"
-        tooltip = f"{account_type} - {holder}"
-        account_options.append(nickname)
-        account_display_map[nickname] = tooltip
+        account_display_map[nickname] = f"{account['type']} - {account['holder']}"
     
-    selected_account_nicknames = st.sidebar.multiselect(
-        'Filter by Account',
-        options=account_options,
-        default=account_options,
-        help='Select one or more accounts to filter. Hover over account names for details.',
-        format_func=lambda x: f"{x} ({account_display_map[x]})"
+    # Filter 1: Account nickname (with type and holder in display)
+    selected_nicknames = st.sidebar.multiselect(
+        'Account Name',
+        options=all_nicknames,
+        default=all_nicknames,
+        format_func=lambda x: f"{x} ({account_display_map[x]})",
+        help='Filter by specific account names'
+    )
+    
+    # Filter 2: Account holder
+    selected_holders = st.sidebar.multiselect(
+        'Account Holder',
+        options=all_holders,
+        default=all_holders,
+        help='Filter by account holder (e.g., Person A, Person B, joint)'
+    )
+    
+    # Filter 3: Account type
+    selected_types = st.sidebar.multiselect(
+        'Account Type',
+        options=all_types,
+        default=all_types,
+        help='Filter by account type (TFSA, RRSP, Roth IRA, non-registered)'
     )
     
     # Rate limiting: cooldown period in seconds
@@ -173,11 +190,16 @@ def main():
     if st.session_state.last_error:
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
-    # Apply account filter based on selected nicknames
-    if selected_account_nicknames:
-        # Filter holdings to only those from selected accounts
-        holdings = [h for h in holdings if h.get('account_nickname') in selected_account_nicknames]
-    # If no accounts selected, show empty portfolio (user deselected all)
+    # Apply account filters - holdings must match ALL selected criteria (AND logic)
+    # Filter by nickname, holder, and type
+    if selected_nicknames or selected_holders or selected_types:
+        holdings = [
+            h for h in holdings
+            if (h.get('account_nickname') in selected_nicknames or not selected_nicknames)
+            and (h.get('account_holder') in selected_holders or not selected_holders)
+            and (h.get('account_type') in selected_types or not selected_types)
+        ]
+    # If all filters empty, show empty portfolio (user deselected everything)
     
     tickers = [h['ticker'] for h in holdings]
 
@@ -386,8 +408,10 @@ def main():
 
     st.subheader('Holdings')
     
-    # Show account breakdown if viewing multiple accounts
-    if len(selected_account_nicknames) > 1 and 'account' in df.columns:
+    # Show account breakdown if viewing multiple accounts (based on filtered results)
+    # Count unique account nicknames in the filtered holdings
+    unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
+    if len(unique_accounts) > 1 and 'account' in df.columns:
         st.markdown("#### By Account (CAD equivalent)")
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
