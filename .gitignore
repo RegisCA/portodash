@@ -3,7 +3,6 @@ portfolio.json
 portfolio.json.backup
 portfolio_*.json
 !portfolio.json.sample
-!portfolio_new_format.json
 
 # Historical data - PRIVATE, contains personal financial snapshots
 historical.csv
