@@ -1,0 +1,71 @@
+# Portfolio data - PRIVATE, contains personal financial information
+portfolio.json
+portfolio.json.backup
+portfolio_*.json
+!portfolio.json.sample
+!portfolio_new_format.json
+
+# Historical data - PRIVATE, contains personal financial snapshots
+historical.csv
+*.csv
+
+# PR body files - not needed in repo
+portodash_pr_body.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.conda/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+scheduler_status.json
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
