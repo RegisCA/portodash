@@ -22,17 +22,24 @@ cp portfolio.json.sample portfolio.json
 # Edit portfolio.json with your holdings
 ```
 
-The portfolio.json format:
+The portfolio.json format uses an account-centric structure:
 
 ```json
 {
-    "holdings": [
+    "accounts": [
         {
-            "ticker": "XEQT.TO",     # Yahoo Finance ticker symbol
-            "shares": 100.5,         # Number of shares (float)
-            "cost_basis": 25.75,     # Average cost per share
-            "currency": "CAD",       # Currency code (optional, defaults to CAD)
-            "account": "TFSA"        # Account name (optional, for grouping)
+            "nickname": "Main Tax-Free",     // Human-readable account name
+            "holder": "Your Name",           // Account holder: name or "joint"
+            "type": "TFSA",                  // Account type: TFSA, RRSP, Roth IRA, or non-registered
+            "base_currency": "CAD",          // Account's native currency: CAD or USD
+            "holdings": [
+                {
+                    "ticker": "XEQT.TO",     // Yahoo Finance ticker symbol
+                    "shares": 100.5,         // Number of shares (float)
+                    "cost_basis": 25.75,     // Average cost per share
+                    "currency": "CAD"        // Currency of the cost basis
+                }
+            ]
         }
     ]
 }
@@ -40,12 +47,15 @@ The portfolio.json format:
 
 Notes:
 
-- Use `.TO` suffix for TSX-listed securities (e.g., "XEQT.TO")
-- US-listed securities need no suffix (e.g., "SPY")
-- `currency`: Optional field for multi-currency support. Defaults to CAD if omitted. Exchange rates are fetched automatically and values are displayed in CAD.
-- `account`: Optional field to track holdings across multiple accounts (e.g., "TFSA", "RRSP", "401k"). Use the account filter in the UI to view specific accounts or all accounts together.
-- The `portfolio.json` file is git-ignored to keep your holdings private
-- Historical snapshots are saved to `historical.csv` (also git-ignored)
+- **Account Structure**: Holdings are organized by account, with each account having metadata (nickname, holder, type, base_currency)
+- **Ticker Symbols**: Use `.TO` suffix for TSX-listed securities (e.g., "XEQT.TO"), no suffix for US securities (e.g., "SPY")
+- **Multi-currency**: Each holding specifies its currency. Exchange rates are fetched automatically and values are displayed in CAD
+- **Account Types**: Supported types are `TFSA`, `RRSP`, `Roth IRA`, and `non-registered`
+- **Account Filter**: The UI filter uses account nicknames with holder/type shown for clarity (e.g., "Main Tax-Free (TFSA - Regis)")
+- **Privacy**: The `portfolio.json` file is git-ignored to keep your holdings private
+- **Historical Data**: Snapshots are saved to `historical.csv` (also git-ignored)
+
+See `portfolio.json.sample` and `portfolio_new_format.json` for complete examples.
 
 ## Installation
 
