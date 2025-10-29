@@ -19,6 +19,7 @@ from portodash.viz import make_allocation_pie, make_30d_performance_chart, make_
 BASE_DIR = os.path.dirname(__file__)
 PORTFOLIO_PATH = os.path.join(BASE_DIR, 'portfolio.json') if not os.path.exists('portfolio.json') else 'portfolio.json'
 HIST_CSV = os.path.join(BASE_DIR, 'historical.csv')
+FX_CSV = os.path.join(BASE_DIR, 'fx_rates.csv')
 
 
 def load_portfolio(path):
@@ -529,7 +530,7 @@ def main():
     
     # Use snapshot-based chart (from historical.csv)
     if os.path.exists(HIST_CSV):
-        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days)
+        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
         st.plotly_chart(perf_fig, use_container_width=True)
     else:
         st.info('📊 No historical snapshots yet. Save snapshots to see performance over time.')
