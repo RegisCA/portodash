@@ -171,13 +171,19 @@ def consolidate_csvs(csv_dir, days=30):
     # Create snapshots for each date
     success_count = 0
     skip_count = 0
+    last_known_prices = {}  # Track last known price for each ticker (forward fill)
     
     for date in filtered_dates:
         # Get prices for this date
         prices = {}
         for ticker, df in ticker_data.items():
             if date in df.index and pd.notna(df.loc[date, 'price']):
-                prices[ticker] = float(df.loc[date, 'price'])
+                price = float(df.loc[date, 'price'])
+                prices[ticker] = price
+                last_known_prices[ticker] = price  # Update last known
+            elif ticker in last_known_prices:
+                # Market closed for this ticker - use last known price (forward fill)
+                prices[ticker] = last_known_prices[ticker]
         
         if prices:
             # Create snapshot with market close time (20:00 UTC ≈ 16:00 ET)
@@ -186,7 +192,13 @@ def consolidate_csvs(csv_dir, days=30):
             
             # Save snapshot
             fetch_and_store_snapshot(holdings, prices, str(csv_path), fetched_at_iso=fetched_at_iso)
-            print(f"✅ {date.date()} ({len(prices)}/{len(tickers)} tickers)")
+            
+            # Show which prices were forward-filled
+            ffilled_count = sum(1 for t in prices if t not in ticker_data or date not in ticker_data[t].index or pd.isna(ticker_data[t].loc[date, 'price']))
+            if ffilled_count > 0:
+                print(f"✅ {date.date()} ({len(prices)}/{len(tickers)} tickers, {ffilled_count} forward-filled)")
+            else:
+                print(f"✅ {date.date()} ({len(prices)}/{len(tickers)} tickers)")
             success_count += 1
         else:
             print(f"⏭️  {date.date()} (no data)")
