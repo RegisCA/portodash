@@ -3,7 +3,7 @@
 Backfill historical.csv with snapshots from past days.
 
 This script fetches historical prices for your portfolio holdings and creates
-snapshots for each day, respecting yfinance rate limits with delays between requests.
+snapshots for each day using a single batch request to avoid rate limiting.
 
 Usage:
     python scripts/backfill_snapshots.py [--days 30]
@@ -15,6 +15,8 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import pandas as pd
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -45,65 +47,63 @@ def load_portfolio():
     return holdings
 
 
-def get_historical_prices_for_date(tickers, target_date):
+def get_historical_prices_batch(tickers, start_date, end_date):
     """
-    Fetch closing prices for a specific date.
+    Fetch closing prices for all tickers across a date range in one request.
     
     Args:
         tickers: List of ticker symbols
-        target_date: datetime object for the target date
+        start_date: datetime object for start
+        end_date: datetime object for end
     
     Returns:
-        dict: ticker -> price, or empty dict on failure
+        DataFrame with dates as index, tickers as columns (or empty on failure)
     """
-    # Fetch a small window around the target date (3 days to account for weekends)
-    start = target_date - timedelta(days=2)
-    end = target_date + timedelta(days=1)
-    
     try:
+        print(f"   Fetching all tickers for date range in one request...")
         data = yf.download(
             tickers=" ".join(tickers),
-            start=start.strftime('%Y-%m-%d'),
-            end=end.strftime('%Y-%m-%d'),
+            start=start_date.strftime('%Y-%m-%d'),
+            end=end_date.strftime('%Y-%m-%d'),
             progress=False,
             threads=False,
             timeout=30
         )
         
         if data.empty:
-            return {}
+            return pd.DataFrame()
         
-        # Get the Adj Close prices for the target date (or closest available)
+        # Extract Adj Close prices
         if 'Adj Close' in data.columns:
             # Multiple tickers
-            prices = {}
-            for ticker in tickers:
-                if ticker in data['Adj Close'].columns:
-                    series = data['Adj Close'][ticker].dropna()
-                    if not series.empty:
-                        # Get the last available price (closest to target date)
-                        prices[ticker] = float(series.iloc[-1])
-            return prices
+            if isinstance(data['Adj Close'], pd.DataFrame):
+                prices_df = data['Adj Close']
+            else:
+                # Single ticker
+                prices_df = data['Adj Close'].to_frame(name=tickers[0])
         else:
-            # Single ticker
-            ticker = tickers[0]
-            series = data['Adj Close'].dropna() if 'Adj Close' in data else data['Close'].dropna()
-            if not series.empty:
-                return {ticker: float(series.iloc[-1])}
-            return {}
+            # Fallback to Close if Adj Close not available
+            if isinstance(data['Close'], pd.DataFrame):
+                prices_df = data['Close']
+            else:
+                prices_df = data['Close'].to_frame(name=tickers[0])
+        
+        return prices_df
     
     except Exception as e:
-        print(f"  ⚠️  Failed to fetch prices for {target_date.strftime('%Y-%m-%d')}: {e}")
-        return {}
+        print(f"  ⚠️  Failed to fetch batch prices: {e}")
+        return pd.DataFrame()
 
 
 def backfill_snapshots(days=30, delay=2):
     """
     Backfill historical.csv with snapshots from the past N days.
     
+    Uses a single yfinance request for the entire date range to avoid rate limiting.
+    
     Args:
         days: Number of days to backfill (default 30)
-        delay: Seconds to wait between requests to avoid rate limiting (default 2)
+        delay: Not used in batch mode (kept for API compatibility)
     """
     print(f"📊 Backfilling {days} days of portfolio snapshots...")
     
@@ -118,7 +118,7 @@ def backfill_snapshots(days=30, delay=2):
     start_date = end_date - timedelta(days=days)
     
     print(f"📅 Date range: {start_date} to {end_date}")
-    print(f"⏱️  Rate limiting: {delay}s delay between requests")
+    print(f"⚡ Using batch download (single request for all dates)")
     print()
     
     # CSV path
@@ -132,43 +132,53 @@ def backfill_snapshots(days=30, delay=2):
             print("Cancelled.")
             return
     
-    # Iterate through each day
-    current_date = start_date
+    # Fetch all historical prices in one batch request
+    print("📥 Downloading historical prices...")
+    prices_df = get_historical_prices_batch(
+        tickers, 
+        datetime.combine(start_date, datetime.min.time()),
+        datetime.combine(end_date, datetime.min.time())
+    )
+    
+    if prices_df.empty:
+        print("❌ Failed to fetch historical data. Check your internet connection or try again later.")
+        return
+    
+    print(f"✅ Downloaded {len(prices_df)} days of price data")
+    print()
+    
+    # Iterate through each date in the data
     success_count = 0
     skip_count = 0
     
-    while current_date <= end_date:
-        # Skip weekends (markets closed)
-        if current_date.weekday() >= 5:  # Saturday=5, Sunday=6
-            print(f"⏭️  {current_date} (weekend, skipping)")
-            current_date += timedelta(days=1)
+    for date_idx in prices_df.index:
+        date_obj = pd.to_datetime(date_idx).date()
+        
+        # Skip weekends (although they shouldn't be in the data)
+        if date_obj.weekday() >= 5:
             skip_count += 1
             continue
         
-        print(f"📥 Fetching {current_date}...", end=' ', flush=True)
+        # Get prices for this date
+        day_prices = prices_df.loc[date_idx]
+        prices_dict = {}
         
-        # Fetch prices for this date
-        prices = get_historical_prices_for_date(tickers, datetime.combine(current_date, datetime.min.time()))
+        for ticker in tickers:
+            if ticker in day_prices and pd.notna(day_prices[ticker]):
+                prices_dict[ticker] = float(day_prices[ticker])
         
-        if prices:
+        if prices_dict:
             # Create snapshot with the date's timestamp (market close time ~16:00 ET)
-            timestamp = datetime.combine(current_date, datetime.min.time().replace(hour=20, minute=0))  # 20:00 UTC ≈ 16:00 ET
+            timestamp = datetime.combine(date_obj, datetime.min.time().replace(hour=20, minute=0))
             fetched_at_iso = timestamp.isoformat() + '+00:00'
             
             # Save snapshot
-            fetch_and_store_snapshot(holdings, prices, str(csv_path), fetched_at_iso=fetched_at_iso)
-            print(f"✅ ({len(prices)}/{len(tickers)} tickers)")
+            fetch_and_store_snapshot(holdings, prices_dict, str(csv_path), fetched_at_iso=fetched_at_iso)
+            print(f"✅ {date_obj} ({len(prices_dict)}/{len(tickers)} tickers)")
             success_count += 1
         else:
-            print("❌ (no data)")
+            print(f"⏭️  {date_obj} (no data)")
             skip_count += 1
-        
-        # Move to next day
-        current_date += timedelta(days=1)
-        
-        # Rate limiting delay (except for last day)
-        if current_date <= end_date:
-            time.sleep(delay)
     
     print()
     print(f"✨ Backfill complete!")
