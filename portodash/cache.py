@@ -31,7 +31,9 @@ def get_cached_prices(tickers, csv_path, max_age_hours=72):
         
     try:
         # Read historical CSV
-        df = pd.read_csv(csv_path, parse_dates=['date'])
+        df = pd.read_csv(csv_path)
+        df['date'] = pd.to_datetime(df['date'], format='ISO8601')
+        
         if df.empty:
             logger.warning(f"Cache file is empty: {csv_path}")
             return {t: None for t in tickers}, {t: None for t in tickers}
@@ -42,7 +44,7 @@ def get_cached_prices(tickers, csv_path, max_age_hours=72):
         
         logger.info(f"Cache cutoff time: {cutoff.isoformat()} (max_age={max_age_hours}h)")
 
-        # Ensure date column is tz-aware for comparison
+        # Ensure date column is tz-aware for comparison (should already be from ISO8601 format)
         if df['date'].dt.tz is None:
             df['date'] = df['date'].dt.tz_localize(pytz.UTC)
 

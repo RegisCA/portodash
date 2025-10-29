@@ -68,8 +68,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         if df.empty:
             return px.line(title='Performance (no snapshot data)')
         
-        # Parse dates
-        df['date'] = pd.to_datetime(df['date'])
+        # Parse dates - handle ISO8601 format
+        df['date'] = pd.to_datetime(df['date'], format='ISO8601')
         
         # Filter to last N days - make cutoff timezone-aware to match df['date']
         cutoff = pd.Timestamp.now(tz='UTC') - timedelta(days=days)
@@ -78,12 +78,24 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         if df.empty:
             return px.line(title=f'Performance (no data in last {days} days)')
         
+        # Deduplicate: if multiple snapshots exist for the same date, keep only the latest
+        # Group by normalized date and keep only the rows with the max timestamp for each date
+        df = df.sort_values('date')
+        df['date_only'] = df['date'].dt.normalize()
+        # For each date_only, find the max timestamp and keep only those rows
+        latest_timestamps = df.groupby('date_only')['date'].max().reset_index()
+        latest_timestamps.columns = ['date_only', 'latest_date']
+        df = df.merge(latest_timestamps, on='date_only')
+        df = df[df['date'] == df['latest_date']]
+        df = df.drop(['date_only', 'latest_date'], axis=1)
+        
         # Load FX rates if available
         fx_rates = None
         if fx_csv_path and os.path.exists(fx_csv_path):
             try:
                 fx_df = pd.read_csv(fx_csv_path)
-                fx_df['date'] = pd.to_datetime(fx_df['date'])
+                # FX rates CSV should be simple YYYY-MM-DD format, but handle ISO8601 too
+                fx_df['date'] = pd.to_datetime(fx_df['date'], format='mixed')
                 # Ensure timezone-aware
                 if fx_df['date'].dt.tz is None:
                     fx_df['date'] = fx_df['date'].dt.tz_localize('UTC')

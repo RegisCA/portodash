@@ -183,7 +183,10 @@ def get_historical_prices(tickers, period="30d"):
 
 
 def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
-    """Append a snapshot for each holding to csv_path.
+    """Update or append a daily snapshot for each holding to csv_path.
+    
+    If a snapshot already exists for today (same date), it will be replaced.
+    This prevents duplicate snapshots for the same day.
 
     holdings: list of dicts with keys ticker, shares, cost_basis, account_nickname (or legacy 'account')
     prices: dict ticker->price
@@ -197,6 +200,10 @@ def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
         now = fetched_at_iso
     else:
         now = datetime.utcnow().isoformat()
+    
+    # Parse the timestamp to get the date portion
+    snapshot_date = pd.to_datetime(now).normalize()
+    
     # calculate current values
     total = 0.0
     for h in holdings:
@@ -227,7 +234,32 @@ def fetch_and_store_snapshot(holdings, prices, csv_path, fetched_at_iso=None):
             'allocation_pct': allocation,
         })
 
-    df = pd.DataFrame(rows)
-    header = not os.path.exists(csv_path)
-    df.to_csv(csv_path, mode='a', header=header, index=False)
-    return df
+    new_df = pd.DataFrame(rows)
+    
+    # If CSV exists, remove any existing snapshots for the same date
+    if os.path.exists(csv_path):
+        existing_df = pd.read_csv(csv_path)
+        existing_df['date'] = pd.to_datetime(existing_df['date'], format='ISO8601')
+        
+        # Ensure both dates are timezone-aware for comparison
+        if existing_df['date'].dt.tz is None:
+            existing_df['date'] = existing_df['date'].dt.tz_localize('UTC')
+        if snapshot_date.tz is None:
+            snapshot_date = snapshot_date.tz_localize('UTC')
+        
+        # Filter out snapshots from the same date (normalized to day)
+        existing_df = existing_df[existing_df['date'].dt.normalize() != snapshot_date]
+        
+        # Convert new_df dates to datetime with timezone for consistency
+        new_df['date'] = pd.to_datetime(new_df['date'])
+        if new_df['date'].dt.tz is None:
+            new_df['date'] = new_df['date'].dt.tz_localize('UTC')
+        
+        # Append new snapshot
+        combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+        combined_df.to_csv(csv_path, index=False)
+    else:
+        # First time - just write the new snapshot
+        new_df.to_csv(csv_path, index=False)
+    
+    return new_df

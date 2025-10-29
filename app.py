@@ -536,15 +536,15 @@ def main():
         st.info('📊 No historical snapshots yet. Save snapshots to see performance over time.')
 
     # Snapshot storage
-    if st.button('Save snapshot to CSV'):
+    if st.button('Update daily snapshot'):
         written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
-        st.success(f'Wrote {len(written)} rows to {HIST_CSV}')
+        st.success(f'Updated today\'s snapshot ({len(written)} holdings) in {HIST_CSV}')
 
     # Export historical CSV
     if os.path.exists(HIST_CSV):
         st.download_button('Download historical snapshots CSV', data=open(HIST_CSV, 'rb').read(), file_name='historical.csv')
     else:
-        st.info('No historical CSV yet. Click "Save snapshot to CSV" to create one.')
+        st.info('No historical CSV yet. Click "Update daily snapshot" to create one.')
 
 
 if __name__ == '__main__':
