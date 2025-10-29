@@ -10,15 +10,16 @@ import pytz
 import pandas as pd
 import streamlit as st # type: ignore
 
-from portodash.data_fetch import get_current_prices, get_historical_prices, fetch_and_store_snapshot
+from portodash.data_fetch import get_current_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
 from portodash.fx import get_fx_rates
-from portodash.viz import make_allocation_pie, make_30d_performance_chart
+from portodash.viz import make_allocation_pie, make_30d_performance_chart, make_snapshot_performance_chart
 
 
 BASE_DIR = os.path.dirname(__file__)
 PORTFOLIO_PATH = os.path.join(BASE_DIR, 'portfolio.json') if not os.path.exists('portfolio.json') else 'portfolio.json'
 HIST_CSV = os.path.join(BASE_DIR, 'historical.csv')
+FX_CSV = os.path.join(BASE_DIR, 'fx_rates.csv')
 
 
 def load_portfolio(path):
@@ -85,11 +86,6 @@ def main():
         st.session_state.last_error = None
     if 'fetch_in_progress' not in st.session_state:
         st.session_state.fetch_in_progress = False
-    # Cache for historical data (keyed by days parameter to avoid refetching on slider change)
-    if 'historical_cache' not in st.session_state:
-        st.session_state.historical_cache = {}
-    if 'historical_fetch_time' not in st.session_state:
-        st.session_state.historical_fetch_time = {}
 
     # Load portfolio first
     try:
@@ -190,6 +186,9 @@ def main():
     if st.session_state.last_error:
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
+    # Get ALL tickers before filtering (needed for price fetching)
+    all_tickers = list(set(h['ticker'] for h in holdings))
+    
     # Apply account filters - holdings must match ALL selected criteria (AND logic)
     # Filter by nickname, holder, and type
     if selected_nicknames or selected_holders or selected_types:
@@ -220,7 +219,7 @@ def main():
                 st.text('Loading cached prices (rate limited)...')
             try:
                 from portodash.data_fetch import get_cached_prices
-                cached_prices, _ = get_cached_prices(tickers, csv_path=HIST_CSV)
+                cached_prices, _ = get_cached_prices(all_tickers, csv_path=HIST_CSV)
                 if cached_prices:
                     st.session_state.prices_cache = cached_prices
                     st.session_state.price_source = 'cache'
@@ -238,7 +237,7 @@ def main():
         st.session_state.fetch_in_progress = True
         
         try:
-            prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
+            prices, fetched_at_iso, price_source = get_current_prices(all_tickers, csv_path=HIST_CSV)
             # Update session state on success
             st.session_state.prices_cache = prices
             st.session_state.fetched_at_iso = fetched_at_iso
@@ -274,7 +273,7 @@ def main():
                 price_source = 'cache (error fallback)'
             else:
                 # No cache available - create empty prices
-                prices = {t: None for t in tickers}
+                prices = {t: None for t in all_tickers}
                 fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
                 price_source = 'unavailable'
     else:
@@ -526,62 +525,15 @@ def main():
     pie = make_allocation_pie(df)
     st.plotly_chart(pie, use_container_width=True)
 
-    # 30-day performance
+    # Performance chart from snapshots
     st.subheader(f'Performance — Last {days} days')
     
-    # Cache historical data to avoid refetching on every slider change
-    # Key by (tickers_tuple, days) to handle both ticker and period changes
-    cache_key = (tuple(sorted(tickers)), days)
-    
-    # Check if we have cached data for this combination
-    # Refresh cache if: 1) no cache exists, 2) manual refresh clicked, or 3) cache is stale (>1 hour)
-    needs_hist_fetch = False
-    perf_fig = None  # Initialize to None
-    
-    # Don't attempt to fetch if we're rate-limited
-    if st.session_state.rate_limited_until and now < st.session_state.rate_limited_until:
-        # Rate-limited: skip fetch, use cached data if available
-        if cache_key not in st.session_state.historical_cache:
-            # No cached data for this period, show message
-            st.info(f"📊 Historical data unavailable (rate limited). Please try again after {st.session_state.rate_limited_until.strftime('%H:%M')}.")
-        else:
-            # Use existing cached data
-            hist = st.session_state.historical_cache[cache_key]
-            perf_fig = make_30d_performance_chart(hist, holdings)
-        needs_hist_fetch = False
-    elif cache_key not in st.session_state.historical_cache:
-        needs_hist_fetch = True
-    elif refresh:
-        # User clicked refresh - update historical data too
-        needs_hist_fetch = True
-    elif cache_key in st.session_state.historical_fetch_time:
-        # Check if cache is stale (older than 1 hour)
-        last_hist_fetch = st.session_state.historical_fetch_time[cache_key]
-        if (now - last_hist_fetch).total_seconds() > 3600:
-            needs_hist_fetch = True
-    
-    if needs_hist_fetch:
-        try:
-            hist = get_historical_prices(tickers, period=f"{days}d")
-            st.session_state.historical_cache[cache_key] = hist
-            st.session_state.historical_fetch_time[cache_key] = now
-            perf_fig = make_30d_performance_chart(hist, holdings)
-        except Exception as e:
-            # If fetch fails, try to use stale cache or empty dataframe
-            if cache_key in st.session_state.historical_cache:
-                hist = st.session_state.historical_cache[cache_key]
-                st.warning(f"Using cached historical data (fetch failed: {str(e)[:100]})")
-                perf_fig = make_30d_performance_chart(hist, holdings)
-            else:
-                st.error(f"Failed to fetch historical data: {str(e)[:100]}")
-                perf_fig = None
-    elif cache_key in st.session_state.historical_cache:
-        # Use cached historical data
-        hist = st.session_state.historical_cache[cache_key]
-        perf_fig = make_30d_performance_chart(hist, holdings)
-    
-    if perf_fig is not None:
+    # Use snapshot-based chart (from historical.csv)
+    if os.path.exists(HIST_CSV):
+        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
         st.plotly_chart(perf_fig, use_container_width=True)
+    else:
+        st.info('📊 No historical snapshots yet. Save snapshots to see performance over time.')
 
     # Snapshot storage
     if st.button('Save snapshot to CSV'):

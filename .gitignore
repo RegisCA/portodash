@@ -6,7 +6,9 @@ portfolio_*.json
 
 # Historical data - PRIVATE, contains personal financial snapshots
 historical.csv
+fx_rates.csv
 *.csv
+!fx_rates.csv.sample
 
 # PR body files - not needed in repo
 portodash_pr_body.json
