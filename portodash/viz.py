@@ -96,18 +96,26 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         unique_dates = sorted(df['date'].unique())
         
         # Forward-fill FX rates for missing dates (similar to how we handle prices)
+        # Normalize FX rates to date-only for matching (ignore time component)
         fx_rate_by_date = {}
         last_known_fx = None
         
         if fx_rates:
+            # Normalize FX rates dict to use date-only keys
+            # This handles the case where FX rates are at 00:00 and snapshots are at 20:00
+            fx_rates_by_date_only = {}
+            for dt, rate in fx_rates.items():
+                date_only = pd.Timestamp(dt).normalize()  # Remove time component
+                fx_rates_by_date_only[date_only] = rate
+            
             for date in unique_dates:
-                date_ts = pd.Timestamp(date)
-                if date_ts in fx_rates:
-                    last_known_fx = fx_rates[date_ts]
-                    fx_rate_by_date[date_ts] = last_known_fx
+                date_ts = pd.Timestamp(date).normalize()  # Normalize to date-only
+                if date_ts in fx_rates_by_date_only:
+                    last_known_fx = fx_rates_by_date_only[date_ts]
+                    fx_rate_by_date[pd.Timestamp(date)] = last_known_fx  # Store with original timestamp
                 elif last_known_fx is not None:
                     # Forward-fill: use last known rate
-                    fx_rate_by_date[date_ts] = last_known_fx
+                    fx_rate_by_date[pd.Timestamp(date)] = last_known_fx
         
         # Get the first FX rate (for fixed FX calculation)
         first_fx_rate = fx_rate_by_date.get(unique_dates[0]) if fx_rate_by_date else None
@@ -165,7 +173,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         }).sort_values('date')
         
         # Create the chart with two lines
-        if fx_rates and first_fx_rate:
+        if fx_rate_by_date and first_fx_rate:
             # Show both lines if we have FX data
             fig = px.line(
                 plot_df,
