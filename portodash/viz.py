@@ -66,8 +66,8 @@ def make_snapshot_performance_chart(csv_path, days=30):
         # Parse dates
         df['date'] = pd.to_datetime(df['date'])
         
-        # Filter to last N days
-        cutoff = datetime.now() - timedelta(days=days)
+        # Filter to last N days - make cutoff timezone-aware to match df['date']
+        cutoff = pd.Timestamp.now(tz='UTC') - timedelta(days=days)
         df = df[df['date'] >= cutoff]
         
         if df.empty:
