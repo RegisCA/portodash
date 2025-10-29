@@ -542,17 +542,6 @@ def main():
     else:
         st.info('No historical CSV yet. Click "Save snapshot to CSV" to create one.')
 
-    # Snapshot storage
-    if st.button('Save snapshot to CSV'):
-        written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
-        st.success(f'Wrote {len(written)} rows to {HIST_CSV}')
-
-    # Export historical CSV
-    if os.path.exists(HIST_CSV):
-        st.download_button('Download historical snapshots CSV', data=open(HIST_CSV, 'rb').read(), file_name='historical.csv')
-    else:
-        st.info('No historical CSV yet. Click "Save snapshot to CSV" to create one.')
-
 
 if __name__ == '__main__':
     main()
