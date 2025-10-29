@@ -2,9 +2,51 @@
 
 Utility scripts for PortoDash maintenance and data management.
 
+## consolidate_yahoo_csvs.py
+
+**Recommended approach** - Consolidate manually downloaded Yahoo Finance CSV files into `historical.csv`.
+
+This bypasses yfinance rate limiting by using manually downloaded data from Yahoo Finance's website.
+
+**Usage:**
+```bash
+# 1. Download historical data for each ticker from Yahoo Finance
+#    - Go to https://finance.yahoo.com/quote/{TICKER}/history
+#    - Set date range (e.g., last 1 month)
+#    - Click "Download" to get CSV
+#    - Save as: data/{TICKER}.csv
+
+# 2. Create data directory
+mkdir data
+
+# 3. Move/rename downloaded files to data/
+#    - FFFFX.csv
+#    - FBGRX.csv
+#    - XEQT.TO.csv (or XEQT_TO.csv)
+#    - etc.
+
+# 4. Run consolidation script
+conda activate portodash  # or: source .venv/bin/activate
+python scripts/consolidate_yahoo_csvs.py --dir data/
+```
+
+**Features:**
+- No API rate limiting (uses pre-downloaded files)
+- Processes standard Yahoo Finance CSV format
+- Automatically matches tickers to your portfolio
+- Flexible filename formats (XEQT.TO.csv or XEQT_TO.csv)
+- Shows progress and reports missing tickers
+
+**Use cases:**
+- Reliable way to initialize historical data
+- Bypassing yfinance rate limits
+- One-time historical data backfill
+
 ## backfill_snapshots.py
 
-Backfill `historical.csv` with portfolio snapshots from past days using historical market prices from yfinance.
+Backfill `historical.csv` with portfolio snapshots using yfinance API.
+
+**Warning:** May encounter rate limiting with Yahoo Finance. Use `consolidate_yahoo_csvs.py` for more reliable results.
 
 **Usage:**
 ```bash
