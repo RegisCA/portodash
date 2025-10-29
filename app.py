@@ -185,6 +185,9 @@ def main():
     if st.session_state.last_error:
         st.sidebar.warning(f"⚠️ {st.session_state.last_error}")
     
+    # Get ALL tickers before filtering (needed for price fetching)
+    all_tickers = list(set(h['ticker'] for h in holdings))
+    
     # Apply account filters - holdings must match ALL selected criteria (AND logic)
     # Filter by nickname, holder, and type
     if selected_nicknames or selected_holders or selected_types:
@@ -215,7 +218,7 @@ def main():
                 st.text('Loading cached prices (rate limited)...')
             try:
                 from portodash.data_fetch import get_cached_prices
-                cached_prices, _ = get_cached_prices(tickers, csv_path=HIST_CSV)
+                cached_prices, _ = get_cached_prices(all_tickers, csv_path=HIST_CSV)
                 if cached_prices:
                     st.session_state.prices_cache = cached_prices
                     st.session_state.price_source = 'cache'
@@ -233,7 +236,7 @@ def main():
         st.session_state.fetch_in_progress = True
         
         try:
-            prices, fetched_at_iso, price_source = get_current_prices(tickers, csv_path=HIST_CSV)
+            prices, fetched_at_iso, price_source = get_current_prices(all_tickers, csv_path=HIST_CSV)
             # Update session state on success
             st.session_state.prices_cache = prices
             st.session_state.fetched_at_iso = fetched_at_iso
@@ -269,7 +272,7 @@ def main():
                 price_source = 'cache (error fallback)'
             else:
                 # No cache available - create empty prices
-                prices = {t: None for t in tickers}
+                prices = {t: None for t in all_tickers}
                 fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
                 price_source = 'unavailable'
     else:
