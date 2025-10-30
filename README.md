@@ -217,12 +217,24 @@ launchctl unload ~/Library/LaunchAgents/com.yourname.portodash.scheduler.plist
 
 ***
 
+## Design
+
+PortoDash features a clean, modern interface inspired by Wealthsimple's design aesthetic:
+- **High contrast** black-on-white with mint green (#00D46A) accents for CTAs
+- **Clear hierarchy** with generous spacing and section dividers
+- **Enhanced charts** with purposeful color schemes that aid interpretation
+- **Responsive layout** optimized for desktop and tablet viewing
+- **Trust indicators** with prominent data source badges and timestamps
+
+See [UX_DESIGN.md](UX_DESIGN.md) for complete design system documentation.
+
 ## Roadmap
 
 - Hardened scheduler with APScheduler, retries, and configurable calendars.
 - Expanded date ranges beyond 30 days (YTD, 1Y, 3Y) and additional charts.
 - Contribution analysis to separate flows, market, and FX effects across time.
 - Import/export tooling to support broker CSVs and speed up onboarding.
+- Dark mode support with theme detection.
 
 ***
 
