@@ -83,10 +83,12 @@ python scripts/demo_mode.py
 ```
 
 **What it does:**
-- Backs up your real files as `*.real` (portfolio.json.real, historical.csv.real, fx_rates.csv.real)
-- Copies sample files to active names (portfolio.json, historical.csv, fx_rates.csv)
+- Backs up your real files as `*.real` (portfolio.json.real, historical.csv.real)
+- Copies sample files to active names (portfolio.json, historical.csv)
 - Creates a `.demo_mode` marker file
 - Switching back restores all your real data
+
+**Note:** `fx_rates.csv` is not swapped since it contains portfolio-agnostic USD/CAD exchange rates that work for any portfolio.
 
 **Safe and reversible:** Your real data is always preserved in `*.real` backup files.
 

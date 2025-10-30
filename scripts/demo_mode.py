@@ -12,7 +12,8 @@ Usage:
 Files managed:
     - portfolio.json
     - historical.csv
-    - fx_rates.csv
+
+Note: fx_rates.csv is not swapped as it contains portfolio-agnostic data.
 
 When switching to demo mode:
     1. Backs up real files as *.real
@@ -44,11 +45,6 @@ class DemoMode:
                 'active': self.base_dir / 'historical.csv',
                 'sample': self.base_dir / 'historical.csv.sample',
                 'backup': self.base_dir / 'historical.csv.real',
-            },
-            'fx_rates.csv': {
-                'active': self.base_dir / 'fx_rates.csv',
-                'sample': self.base_dir / 'fx_rates.csv.sample',
-                'backup': self.base_dir / 'fx_rates.csv.real',
             },
         }
     
