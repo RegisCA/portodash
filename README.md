@@ -1,23 +1,27 @@
 # PortoDash
 
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.30+-red.svg)
+
 A lightweight Streamlit portfolio tracker that makes multi-currency portfolios legible by separating market returns from FX effects while keeping a trustworthy CAD home‑currency total and native‑currency context per holding.
 Built for Canadian and cross‑border investors who want decision‑ready insights, clear data provenance, and a fast UI that remains usable even when APIs are flaky.
 
 ## Table of contents
 
-- Overview
-- User features
-- Technical features
-- Installation
-- Configuration
-- Usage
-- Demo mode
-- Data freshness
-- Scheduler
-- macOS startup
-- Roadmap
-- Contributing
-- Credits
+- [Overview](#overview)
+- [User features](#user-features)
+- [Technical features](#technical-features)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Demo mode](#demo-mode)
+- [Data freshness](#data-freshness)
+- [Scheduler](#scheduler)
+- [macOS startup](#macos-startup)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Credits](#credits)
 
 ***
 

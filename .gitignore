@@ -9,6 +9,11 @@ historical.csv
 fx_rates.csv
 *.csv
 !fx_rates.csv.sample
+!historical.csv.sample
+
+# Demo mode - swap script state files
+.demo_mode
+*.real
 
 # PR body files - not needed in repo
 portodash_pr_body.json
