@@ -57,6 +57,41 @@ Notes:
 
 See `portfolio.json.sample` for a complete example.
 
+## Demo Mode
+
+Want to try the app without configuring your own portfolio? Use demo mode!
+
+Demo mode lets you:
+- Try the app with realistic sample data
+- Take screenshots without exposing your real holdings
+- Test features before setting up your portfolio
+
+### Using Demo Mode
+
+```bash
+# Check current mode (REAL or DEMO)
+python scripts/demo_mode.py --status
+
+# Toggle to demo mode (backs up your real data safely)
+python scripts/demo_mode.py
+
+# Run the app with demo data
+streamlit run app.py
+
+# Toggle back to real data when done
+python scripts/demo_mode.py
+```
+
+**What it does:**
+- Backs up your real files as `*.real` (portfolio.json.real, historical.csv.real)
+- Copies sample files to active names (portfolio.json, historical.csv)
+- Creates a `.demo_mode` marker file
+- Switching back restores all your real data
+
+**Note:** `fx_rates.csv` is not swapped since it contains portfolio-agnostic USD/CAD exchange rates that work for any portfolio.
+
+**Safe and reversible:** Your real data is always preserved in `*.real` backup files.
+
 ## Installation
 
 ### Quick Start with venv
