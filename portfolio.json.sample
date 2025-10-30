@@ -8,13 +8,13 @@
             "holdings": [
                 {
                     "ticker": "FFFFX",
-                    "shares": 1000,
+                    "shares": 4000,
                     "cost_basis": 13,
                     "currency": "USD"
                 },
                 {
                     "ticker": "FBGRX",
-                    "shares": 100,
+                    "shares": 700,
                     "cost_basis": 230,
                     "currency": "USD"
                 }

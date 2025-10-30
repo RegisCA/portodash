@@ -146,6 +146,16 @@ How it works
 
 - Swaps `portfolio.json` and `historical.csv` with sample versions, creates a `.demo_mode` marker, and restores your originals when toggled back.
 
+Updating demo data
+
+If you modify `portfolio.json.sample` (e.g., change share quantities), regenerate `historical.csv.sample`:
+
+```bash
+python scripts/update_demo_shares.py
+```
+
+This updates all historical snapshots with new share quantities and recalculates portfolio values without re-downloading price data.
+
 ***
 
 ## Data freshness
@@ -220,6 +230,7 @@ launchctl unload ~/Library/LaunchAgents/com.yourname.portodash.scheduler.plist
 ## Design
 
 PortoDash features a clean, modern interface inspired by Wealthsimple's design aesthetic:
+
 - **High contrast** black-on-white with mint green (#00D46A) accents for CTAs
 - **Clear hierarchy** with generous spacing and section dividers
 - **Enhanced charts** with purposeful color schemes that aid interpretation
