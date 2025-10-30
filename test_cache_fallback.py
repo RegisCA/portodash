@@ -3,6 +3,8 @@
 
 import logging
 import sys
+
+import pytest
 from portodash.data_fetch import get_current_prices
 from portodash.cache import get_cached_prices
 
@@ -53,13 +55,12 @@ def test_cache_fallback():
     
     if success_count == 0:
         print("\n❌ FAIL: No prices retrieved. Cache fallback not working!")
-        return False
+        pytest.fail("Cache fallback did not return any prices")
     elif success_count == len(tickers):
         print(f"\n✅ SUCCESS: All prices retrieved from {source}")
-        return True
     else:
         print(f"\n⚠️  PARTIAL: {success_count} prices retrieved from {source}")
-        return True
+        # Treat partial results as soft success; pytest test finishes without failing
 
 if __name__ == '__main__':
     success = test_cache_fallback()
