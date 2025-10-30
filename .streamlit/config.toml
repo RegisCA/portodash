@@ -1,0 +1,21 @@
+# PortoDash Streamlit Configuration
+# Wealthsimple-inspired clean design aesthetic
+
+[theme]
+# Base colors - high contrast black on white
+primaryColor = "#00D46A"        # Mint green accent (Wealthsimple signature)
+backgroundColor = "#FFFFFF"      # Pure white background
+secondaryBackgroundColor = "#F7F9FA"  # Subtle off-white for cards/containers
+textColor = "#1A1A1A"           # Near-black for primary text
+
+# Font
+font = "sans-serif"             # Clean sans-serif stack
+
+[server]
+# Development settings
+headless = false
+port = 8501
+
+[browser]
+# Gathering usage stats
+gatherUsageStats = false

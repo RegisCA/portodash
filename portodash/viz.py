@@ -3,14 +3,54 @@ import pandas as pd
 
 
 def make_allocation_pie(df):
-    """Return a Plotly pie chart for allocation. Expects df with ticker and current_value."""
+    """Return a Plotly pie chart for allocation with clean, modern styling."""
     if df.empty:
         return px.pie(values=[], names=[], title="Allocation")
 
     # remove TOTAL row if present
     d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df
-    fig = px.pie(d, names='ticker', values='current_value', title='Portfolio Allocation', hole=0.3)
-    fig.update_traces(textposition='inside', textinfo='percent+label')
+    
+    # Clean color palette - Wealthsimple inspired
+    colors = ['#00D46A', '#2E86AB', '#A23B72', '#F18F01', '#C73E1D', 
+              '#6B7280', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899']
+    
+    fig = px.pie(
+        d, 
+        names='ticker', 
+        values='current_value', 
+        hole=0.4,
+        color_discrete_sequence=colors
+    )
+    
+    fig.update_traces(
+        textposition='outside',
+        textinfo='label+percent',
+        textfont_size=13,
+        textfont_family='system-ui, -apple-system, sans-serif',
+        marker=dict(line=dict(color='#FFFFFF', width=2))
+    )
+    
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation='v',
+            yanchor='middle',
+            y=0.5,
+            xanchor='left',
+            x=1.05,
+            font=dict(size=12)
+        ),
+        margin=dict(l=20, r=120, t=40, b=20),
+        font=dict(family='system-ui, -apple-system, sans-serif', color='#1A1A1A'),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        hoverlabel=dict(
+            bgcolor='white',
+            font_size=13,
+            font_family='system-ui, -apple-system, sans-serif'
+        )
+    )
+    
     return fig
 
 
@@ -191,27 +231,48 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
                 plot_df,
                 x='date',
                 y=['Market Performance (Fixed FX)', 'Actual Performance (with FX)'],
-                title=f'Portfolio Performance — Last {days} Days',
                 labels={'value': 'Portfolio Value (CAD)', 'date': 'Date', 'variable': 'Series'}
             )
             
-            # Customize line styles
-            fig.data[0].line.color = '#2E86AB'  # Blue for fixed FX
+            # Customize line styles - cleaner, more modern
+            fig.data[0].line.color = '#6B7280'  # Gray for fixed FX baseline
             fig.data[0].line.width = 2
-            fig.data[0].line.dash = 'dash'
+            fig.data[0].line.dash = 'dot'
+            fig.data[0].name = '📊 Market (Fixed FX)'
             
-            fig.data[1].line.color = '#A23B72'  # Purple for actual
-            fig.data[1].line.width = 2.5
+            fig.data[1].line.color = '#00D46A'  # Mint green for actual (Wealthsimple signature)
+            fig.data[1].line.width = 3
+            fig.data[1].name = '💰 Actual (with FX)'
             
             fig.update_layout(
                 hovermode='x unified',
                 yaxis_tickformat='$,.0f',
                 legend=dict(
                     orientation='h',
-                    yanchor='bottom',
-                    y=1.02,
-                    xanchor='right',
-                    x=1
+                    yanchor='top',
+                    y=-0.15,
+                    xanchor='center',
+                    x=0.5,
+                    font=dict(size=13)
+                ),
+                font=dict(family='system-ui, -apple-system, sans-serif', color='#1A1A1A'),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='#E8EBED',
+                    gridwidth=1
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor='#E8EBED',
+                    gridwidth=1
+                ),
+                margin=dict(l=20, r=20, t=20, b=80),
+                hoverlabel=dict(
+                    bgcolor='white',
+                    font_size=13,
+                    font_family='system-ui, -apple-system, sans-serif'
                 )
             )
         else:
@@ -223,14 +284,38 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
                 daily_values,
                 x='date',
                 y='portfolio_value',
-                title=f'Portfolio Value — Last {days} Days',
                 labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': 'Date'}
             )
             
-            fig.update_traces(line_color='#1f77b4', line_width=2)
+            fig.update_traces(
+                line_color='#00D46A',
+                line_width=3,
+                name='Portfolio Value'
+            )
+            
             fig.update_layout(
                 hovermode='x unified',
-                yaxis_tickformat='$,.0f'
+                yaxis_tickformat='$,.0f',
+                font=dict(family='system-ui, -apple-system, sans-serif', color='#1A1A1A'),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='#E8EBED',
+                    gridwidth=1
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor='#E8EBED',
+                    gridwidth=1
+                ),
+                margin=dict(l=20, r=20, t=20, b=40),
+                showlegend=False,
+                hoverlabel=dict(
+                    bgcolor='white',
+                    font_size=13,
+                    font_family='system-ui, -apple-system, sans-serif'
+                )
             )
         
         return fig
