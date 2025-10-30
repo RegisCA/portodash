@@ -8,12 +8,22 @@ from datetime import datetime, timedelta
 import pytz
 
 import pandas as pd
-import streamlit as st # type: ignore
+import streamlit as st  # type: ignore
 
 from portodash.data_fetch import get_current_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
 from portodash.fx import get_fx_rates
 from portodash.viz import make_allocation_pie, make_30d_performance_chart, make_snapshot_performance_chart
+from portodash.theme import (
+    get_section_label,
+    inject_modern_fintech_css,
+    inject_typography_css,
+    render_page_title,
+    render_section_header,
+    render_sidebar_subtitle,
+    render_sidebar_title,
+    render_subsection_header,
+)
 
 
 BASE_DIR = os.path.dirname(__file__)
@@ -67,132 +77,12 @@ def load_portfolio(path):
     }
 
 
-def inject_custom_css():
-    """Inject custom CSS for Wealthsimple-inspired clean design."""
-    st.markdown("""
-        <style>
-        /* Typography enhancements */
-        h1 {
-            font-weight: 700 !important;
-            letter-spacing: -0.02em !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        h2, h3 {
-            font-weight: 600 !important;
-            letter-spacing: -0.01em !important;
-            margin-top: 2rem !important;
-        }
-        
-        /* Card-style containers */
-        .stContainer > div {
-            background-color: #F7F9FA;
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid #E8EBED;
-        }
-        
-        /* Metric styling - larger, more prominent */
-        [data-testid="stMetricValue"] {
-            font-size: 2rem !important;
-            font-weight: 700 !important;
-        }
-        
-        [data-testid="stMetricLabel"] {
-            font-size: 0.875rem !important;
-            font-weight: 500 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #6B7280 !important;
-        }
-        
-        /* Button styling - more prominent */
-        .stButton > button {
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-            padding: 0.5rem 1.5rem !important;
-            transition: all 0.2s ease !important;
-            border: 1px solid #E8EBED !important;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-        }
-        
-        .stButton > button[kind="primary"] {
-            background-color: #00D46A !important;
-            border: none !important;
-            color: white !important;
-        }
-        
-        .stButton > button[kind="primary"]:hover {
-            background-color: #00BD5E !important;
-        }
-        
-        /* Dataframe styling */
-        [data-testid="stDataFrame"] {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        /* Info/warning boxes */
-        .stAlert {
-            border-radius: 8px !important;
-            border-left: 4px solid #00D46A !important;
-        }
-        
-        /* Sidebar styling */
-        [data-testid="stSidebar"] {
-            background-color: #F7F9FA;
-            border-right: 1px solid #E8EBED;
-        }
-        
-        /* Status badges */
-        .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-left: 0.5rem;
-        }
-        
-        .status-live {
-            background-color: #D1FAE5;
-            color: #065F46;
-        }
-        
-        .status-cache {
-            background-color: #FEF3C7;
-            color: #92400E;
-        }
-        
-        .status-mixed {
-            background-color: #DBEAFE;
-            color: #1E40AF;
-        }
-        
-        /* Reduce padding for tighter layout */
-        .block-container {
-            padding-top: 2rem !important;
-            padding-bottom: 2rem !important;
-        }
-        
-        /* Chart container styling */
-        .js-plotly-plot {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-
 def main():
-    st.set_page_config(page_title='PortoDash', layout='wide', page_icon='📊')
-    inject_custom_css()
-    
-    st.title('📊 PortoDash')
+    st.set_page_config(page_title='PortoDash', layout='wide')
+    inject_modern_fintech_css()
+    inject_typography_css()
+
+    st.markdown(render_page_title('PortoDash'), unsafe_allow_html=True)
     st.caption('Multi-currency portfolio tracker with FX impact analysis')
 
     # Initialize session state for price caching and rate limiting
@@ -223,15 +113,21 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.markdown("## ⚙️ Controls")
-        st.markdown("---")
-        
-        st.markdown("### 📅 Time Range")
-        days = st.slider('Performance chart period', min_value=7, max_value=365, value=30, step=1, help='Number of days to display in performance chart')
-        
-        # Account filters - filter by nickname, holder, and/or account type
-        st.markdown("---")
-        st.markdown('### 🔍 Filters')
+        st.markdown(render_sidebar_title(get_section_label("analytics")), unsafe_allow_html=True)
+        st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
+
+        st.markdown(render_sidebar_subtitle(get_section_label("date")), unsafe_allow_html=True)
+        days = st.slider(
+            'Performance chart period',
+            min_value=7,
+            max_value=365,
+            value=30,
+            step=1,
+            help='Number of days to display in performance chart',
+        )
+
+        st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
+        st.markdown(render_sidebar_title(get_section_label("filter")), unsafe_allow_html=True)
     
     # Extract unique values for each filter dimension
     all_nicknames = sorted(set(acc['nickname'] for acc in accounts))
@@ -245,29 +141,26 @@ def main():
         account_display_map[nickname] = f"{account['type']} - {account['holder']}"
     
     with st.sidebar:
-        # Filter 1: Account nickname (with type and holder in display)
         selected_nicknames = st.multiselect(
-            '📁 Account Name',
+            get_section_label("account"),
             options=all_nicknames,
             default=all_nicknames,
             format_func=lambda x: f"{x} ({account_display_map[x]})",
-            help='Filter by specific account names'
+            help='Filter by specific account names',
         )
-        
-        # Filter 2: Account holder
+
         selected_holders = st.multiselect(
-            '👤 Account Holder',
+            get_section_label("holder"),
             options=all_holders,
             default=all_holders,
-            help='Filter by account holder'
+            help='Filter by account holder',
         )
-        
-        # Filter 3: Account type
+
         selected_types = st.multiselect(
-            '🏦 Account Type',
+            get_section_label("type"),
             options=all_types,
             default=all_types,
-            help='Filter by account type (TFSA, RRSP, etc.)'
+            help='Filter by account type (TFSA, RRSP, etc.)',
         )
     
     # Rate limiting: cooldown period in seconds
@@ -287,7 +180,7 @@ def main():
             can_refresh = False
             remaining_secs = int((st.session_state.rate_limited_until - now).total_seconds())
             remaining_mins = remaining_secs // 60
-            button_label = f'⏳ Rate limited (wait {remaining_mins}m)'
+            button_label = f'Rate limited (wait {remaining_mins}m)'
         else:
             # Rate limit period expired
             st.session_state.rate_limited_until = None
@@ -308,17 +201,17 @@ def main():
     # Refresh button with appropriate state
     with st.sidebar:
         if can_refresh:
-            refresh = st.button('🔄 Refresh Prices', use_container_width=True, type='primary')
+            refresh = st.button('Refresh prices', use_container_width=True, type='primary')
         else:
             st.button(button_label, disabled=True, use_container_width=True)
             refresh = False
         
         # Show rate limit warning if we have one
         if st.session_state.last_error:
-            st.warning(f"⚠️ {st.session_state.last_error}")
-    
-        st.markdown("---")
-        st.markdown("### 🔄 Data Refresh")
+            st.warning(st.session_state.last_error)
+
+        st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
+        st.markdown(render_sidebar_title(get_section_label("refresh")), unsafe_allow_html=True)
     
     # Get ALL tickers before filtering (needed for price fetching)
     all_tickers = list(set(h['ticker'] for h in holdings))
@@ -368,7 +261,7 @@ def main():
     
     if should_fetch:
         status_placeholder = st.sidebar.empty()
-        status_placeholder.info('🔄 Fetching latest prices...')
+        status_placeholder.info('Fetching latest prices...')
         
         # Mark that a fetch is in progress for cooldown tracking
         st.session_state.fetch_in_progress = True
@@ -397,11 +290,11 @@ def main():
                 # Set extended cooldown for rate limit
                 st.session_state.rate_limited_until = now + timedelta(seconds=RATE_LIMIT_EXTENDED_COOLDOWN)
                 st.session_state.last_error = "Yahoo Finance rate limit reached. Using cached data. Will retry in ~1 hour."
-                st.sidebar.error("🚫 Rate limit reached! Using cached prices.")
+                st.sidebar.error("Rate limit reached. Using cached prices.")
             else:
                 # Other error - show it but don't extend cooldown as much
                 st.session_state.last_error = f"Error fetching prices: {error_msg}"
-                st.sidebar.error(f"❌ {st.session_state.last_error}")
+                st.sidebar.error(st.session_state.last_error)
             
             # Fall back to cached data if available
             if st.session_state.prices_cache:
@@ -431,7 +324,7 @@ def main():
 
     # Show fetch time and scheduler status prominently
     st.markdown("---")
-    st.markdown("### 📊 Portfolio Status")
+    st.markdown(render_section_header('Portfolio Status'), unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     with col1:
@@ -484,7 +377,7 @@ def main():
                     status_json = json.load(fh)
                 # show running state or next run
                 if status_json.get('job_running'):
-                    st.success('⚡ Scheduler running (job active)')
+                    st.success('Scheduler running (job active)')
                     shown = True
                 elif status_json.get('next_run'):
                     try:
@@ -493,15 +386,15 @@ def main():
                         # Check if next_run is in the past (stale status file)
                         if nr_local < datetime.now(tz):
                             # Status file is stale - scheduler probably not running
-                            st.warning(f"⚠️ Scheduler status outdated (last update: {nr_local.strftime('%Y-%m-%d %H:%M')}). Scheduler may not be running.")
+                            st.warning(f"Scheduler status outdated (last update: {nr_local.strftime('%Y-%m-%d %H:%M')}). Scheduler may not be running.")
                         else:
-                            st.info(f"📅 Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                            st.info(f"Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                         shown = True
                     except Exception:
-                        st.info('📅 Next scheduled update available')
+                        st.info('Next scheduled update available')
                         shown = True
                 elif status_json.get('last_error'):
-                    st.error(f"❌ Last scheduler error: {status_json.get('last_error')}")
+                    st.error(f"Last scheduler error: {status_json.get('last_error')}")
                     shown = True
             except Exception:
                 # ignore corrupted status file and fall back
@@ -512,11 +405,11 @@ def main():
             running, method = _detect_scheduler_running()
             if running:
                 if method == 'process':
-                    st.success('⚡ Scheduler process detected')
+                    st.success('Scheduler process detected')
                 else:
-                    st.success('⚡ Scheduler log found (scheduler probably running)')
+                    st.success('Scheduler log found (scheduler probably running)')
             else:
-                st.warning("⚠️ Scheduler not running — start it with: python scripts/run_scheduler.py")
+                st.warning("Scheduler not running — start it with: python scripts/run_scheduler.py")
 
     # compute portfolio data; collect currencies per holding (optional field `currency`)
     currencies = {h.get('currency', 'CAD').upper() for h in holdings}
@@ -527,12 +420,12 @@ def main():
 
     # Check if we have any data to display
     if df.empty or len(holdings) == 0:
-        st.warning("📭 No holdings to display with current filter selections. Please adjust your filters.")
+        st.warning("No holdings to display with current filter selections. Please adjust your filters.")
         return
 
     # Summary KPIs - all values in CAD
     st.markdown("---")
-    st.markdown("### 💰 Portfolio Overview")
+    st.markdown(render_section_header('Portfolio Overview'), unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
@@ -547,7 +440,7 @@ def main():
     
     # Show FX rates and calculation methodology if multi-currency
     if fx_rates:
-        with st.expander("💱 Multi-Currency Details", expanded=False):
+        with st.expander("Multi-Currency Details", expanded=False):
             st.markdown("""
             All values displayed in **CAD** (Canadian Dollar)
             
@@ -558,13 +451,13 @@ def main():
             st.caption("_Exchange rates cached for 12 hours from open.er-api.com_")
 
     st.markdown("---")
-    st.markdown("### 📈 Holdings")
+    st.markdown(render_section_header('Holdings'), unsafe_allow_html=True)
     
     # Show account breakdown if viewing multiple accounts (based on filtered results)
     # Count unique account nicknames in the filtered holdings
     unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
     if len(unique_accounts) > 1 and 'account' in df.columns:
-        st.markdown("#### 📁 By Account")
+        st.markdown(render_subsection_header('By Account'), unsafe_allow_html=True)
         # Group by account (excluding TOTAL row)
         accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
             'current_value': 'sum',
@@ -598,7 +491,7 @@ def main():
             }
         )
         
-        st.markdown("#### 📊 All Holdings")
+    st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
     
     # Apply color formatting for gain_pct
     def color_gain_pct(val):
@@ -670,44 +563,44 @@ def main():
 
     # Allocation chart
     st.markdown("---")
-    st.markdown("### 🎯 Allocation")
+    st.markdown(render_section_header('Allocation'), unsafe_allow_html=True)
     pie = make_allocation_pie(df)
     st.plotly_chart(pie, use_container_width=True)
 
     # Performance chart from snapshots
     st.markdown("---")
-    st.markdown(f"### 📉 Performance — Last {days} Days")
+    st.markdown(render_section_header(f"Performance — Last {days} Days"), unsafe_allow_html=True)
     
     # Use snapshot-based chart (from historical.csv)
     if os.path.exists(HIST_CSV):
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
         st.plotly_chart(perf_fig, use_container_width=True)
     else:
-        st.info('📊 No historical snapshots yet. Save snapshots to see performance over time.')
+        st.info('No historical snapshots yet. Save snapshots to see performance over time.')
 
     # Snapshot storage
     st.markdown("---")
-    st.markdown("### 💾 Data Management")
+    st.markdown(render_section_header('Data Management'), unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        if st.button('📸 Update daily snapshot', use_container_width=True, help='Save current prices to historical.csv'):
+        if st.button('Update daily snapshot', use_container_width=True, help='Save current prices to historical.csv'):
             written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
-            st.success(f'✅ Updated today\'s snapshot ({len(written)} holdings)')
+            st.success(f"Updated today's snapshot ({len(written)} holdings)")
     
     with col2:
         # Export historical CSV
         if os.path.exists(HIST_CSV):
             st.download_button(
-                '📥 Download snapshots CSV', 
+                'Download snapshots CSV', 
                 data=open(HIST_CSV, 'rb').read(), 
                 file_name='historical.csv',
                 use_container_width=True,
                 help='Export all historical snapshots'
             )
         else:
-            st.info('💡 No historical data yet. Click "Update daily snapshot" to begin tracking.')
+            st.info('No historical data yet. Click "Update daily snapshot" to begin tracking.')
 
 
 if __name__ == '__main__':
