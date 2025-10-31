@@ -242,7 +242,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 plot_df,
                 x='date',
                 y=['Market Performance (Fixed FX)', 'Actual Performance (with FX)'],
-                labels={'value': 'Portfolio Value (CAD)', 'date': 'Date', 'variable': 'Series'}
+                labels={'value': 'Portfolio Value (CAD)', 'date': '', 'variable': 'Series'}
             )
             
             # Customize line styles - cleaner, more modern
@@ -298,7 +298,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 single_line_df,
                 x='date',
                 y='portfolio_value',
-                labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': 'Date'}
+                labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': ''}
             )
             
             fig.update_traces(
