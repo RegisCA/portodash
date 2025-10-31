@@ -506,6 +506,97 @@ python scripts/demo_mode.py
 
 ---
 
+## Accessibility Guidelines
+
+### WCAG 2.1 Level AA Compliance
+
+PortoDash follows WCAG 2.1 Level AA accessibility standards to ensure the dashboard is usable by everyone, including users with disabilities.
+
+**Key Requirements:**
+
+- **Color Contrast:** Minimum 4.5:1 for normal text, 3:1 for large text
+- **Keyboard Navigation:** All interactive elements accessible via keyboard
+- **Screen Readers:** ARIA labels on charts and interactive controls
+- **Focus Indicators:** Visible focus outlines (3px solid, 2px offset)
+- **Reduced Motion:** Respects `prefers-reduced-motion` media query
+
+### Testing Checklist for PRs
+
+Before submitting a PR that adds or modifies UI elements, verify:
+
+1. **Keyboard Navigation:**
+   - [ ] Tab through all interactive elements in logical order
+   - [ ] All buttons, links, and filters reachable via keyboard
+   - [ ] Focus indicators visible on all interactive elements
+
+2. **Color Contrast (if adding colors):**
+   - [ ] Run `check_color_contrast()` from `portodash/accessibility.py`
+   - [ ] Normal text: minimum 4.5:1 contrast ratio
+   - [ ] Large text (18pt+ or 14pt+ bold): minimum 3:1 contrast ratio
+   - [ ] Use online tools: [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
+
+3. **ARIA Labels (if adding charts or interactive elements):**
+   - [ ] Charts wrapped in semantic HTML with `role="img"` and descriptive `aria-label`
+   - [ ] Filter controls have clear `aria-label` attributes explaining their purpose
+   - [ ] Buttons have descriptive labels or `aria-label` if icon-only
+
+4. **Screen Reader Testing (recommended):**
+   - [ ] Test with VoiceOver (macOS): `Cmd+F5` to enable
+   - [ ] Verify all content is announced correctly
+   - [ ] Check skip navigation link works (appears on Tab)
+
+5. **Print Stylesheet:**
+   - [ ] Open print preview (`Cmd+P` or browser menu)
+   - [ ] Verify interactive elements (buttons, filters) are hidden
+   - [ ] Check content is readable and properly formatted
+
+### Code Examples
+
+**Adding ARIA Labels to Charts:**
+
+```python
+# Wrap Plotly chart in semantic HTML with ARIA label
+st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
+st.plotly_chart(chart_figure, use_container_width=True)
+st.markdown('</div>', unsafe_allow_html=True)
+```
+
+**Adding ARIA Labels to Interactive Controls:**
+
+```python
+# Wrap filter controls with descriptive ARIA label
+st.markdown('<div aria-label="Account filter: Select one or more accounts to filter the portfolio view">', unsafe_allow_html=True)
+selected_accounts = st.multiselect("Select accounts", options=all_accounts)
+st.markdown('</div>', unsafe_allow_html=True)
+```
+
+**Validating Color Contrast:**
+
+```python
+from portodash.accessibility import check_color_contrast
+
+# Check if new color meets WCAG AA standards
+is_valid, ratio = check_color_contrast('#1a1a1a', '#00ff88')
+print(f"Contrast ratio: {ratio:.2f}:1 — {'PASS' if is_valid else 'FAIL'}")
+```
+
+### Accessibility Resources
+
+- **WCAG 2.1 Guidelines:** https://www.w3.org/WAI/WCAG21/quickref/
+- **WebAIM Contrast Checker:** https://webaim.org/resources/contrastchecker/
+- **Keyboard Navigation Testing:** https://webaim.org/articles/keyboard/
+- **VoiceOver User Guide:** https://support.apple.com/guide/voiceover/welcome/mac
+- **Project Documentation:** `ACCESSIBILITY.md` in repository root
+
+### Accessibility Modules
+
+- **portodash/accessibility.py:** Color contrast validation, ARIA label generation
+- **portodash/theme.py:** Accessibility CSS injection (focus styles, skip links, print stylesheet)
+
+For detailed accessibility feature documentation, see `ACCESSIBILITY.md`.
+
+---
+
 ## Credits
 
 Built primarily with **GitHub Copilot** (Claude Sonnet 4.5) over 7 days in October 2025. All commits made through `@regisca-bot` account to properly track AI-assisted development.
