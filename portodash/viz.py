@@ -180,6 +180,9 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
         # Get the first FX rate (for fixed FX calculation)
         first_fx_rate = fx_rate_by_date.get(unique_dates[0]) if fx_rate_by_date else None
         
+        # Check if there are any USD holdings (for FX labeling)
+        has_usd_holdings = any(not ticker.endswith('.TO') for ticker in df['ticker'].unique())
+        
         # Calculate portfolio values with and without FX impact
         portfolio_values_fixed_fx = []
         portfolio_values_actual_fx = []
@@ -232,9 +235,9 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
             'Actual Performance (with FX)': portfolio_values_actual_fx
         }).sort_values('date')
         
-        # Create the chart with two lines
-        if fx_rate_by_date and first_fx_rate:
-            # Show both lines if we have FX data
+        # Create the chart - show two lines only if we have FX data AND USD holdings
+        if fx_rate_by_date and first_fx_rate and has_usd_holdings:
+            # Show both lines if we have FX data and multi-currency portfolio
             fig = px.line(
                 plot_df,
                 x='date',
@@ -284,12 +287,15 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 )
             )
         else:
-            # No FX data - show single line using portfolio_value from CSV
-            daily_values = df.groupby('date')['portfolio_value'].first().reset_index()
-            daily_values = daily_values.sort_values('date')
+            # Single currency or no FX data - show single line
+            # Use the actual values (they'll be the same as fixed if single currency)
+            single_line_df = pd.DataFrame({
+                'date': dates,
+                'portfolio_value': portfolio_values_actual_fx
+            }).sort_values('date')
             
             fig = px.line(
-                daily_values,
+                single_line_df,
                 x='date',
                 y='portfolio_value',
                 labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': 'Date'}
