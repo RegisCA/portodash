@@ -6,9 +6,9 @@
 ![WCAG 2.1 Level AA](https://img.shields.io/badge/accessibility-WCAG%202.1%20Level%20AA-brightgreen.svg)
 
 A lightweight Streamlit portfolio tracker that makes multi-currency portfolios legible by separating market returns from FX effects while keeping a trustworthy CAD home‑currency total and native‑currency context per holding.
-Built for Canadian and cross‑border investors who want decision‑ready insights, clear data provenance, and a fast UI that remains usable even when APIs are flaky.
+Built for Canadian and cross‑border investors who want decision‑ready insights, clear data provenance, and a responsive UI optimized for widescreen displays.
 
-**v1.1 Update:** Now with WCAG 2.1 Level AA accessibility compliance — keyboard navigation, screen reader support, validated color contrast, and print-friendly layouts.
+**v1.2 Update:** Redesigned information hierarchy puts key insights front and center — see your portfolio health (FX exposure, top holdings, average gains) immediately without scrolling. Context-aware headers and dynamic tables adapt to your view, whether analyzing your full portfolio or diving into specific accounts.
 
 ## Table of contents
 
@@ -31,7 +31,7 @@ Built for Canadian and cross‑border investors who want decision‑ready insigh
 ## Overview
 
 PortoDash shows native‑currency values alongside CAD totals so you instantly see what moved because of markets versus what moved because of FX.
-A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every number on screen, while a refreshed fintech‑inspired theme keeps the UI sharp across large KPI grids.
+A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every number on screen, while an insights‑first layout ensures critical portfolio metrics are visible immediately without scrolling — perfect for quick portfolio health checks on widescreen displays.
 
 ### Demo
 
@@ -41,19 +41,22 @@ A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every
 
 ## User features
 
-- Clear CAD home‑currency total with native‑currency context preserved on each holding to avoid conversion ambiguity.
-- Multi‑account browsing with filters by account, holder, and account type for focused analysis slices.
-- Allocation pie chart for a high‑signal snapshot of portfolio composition.
-- 30‑day performance view with two series that isolate FX impact: Market Performance (Fixed FX) vs Actual Performance (with FX).
-- Transparent data‑provenance indicator (Live, Cache, Mixed) and Last Updated timestamp for immediate data quality awareness.
-- Demo Mode with realistic sample data for safe exploration and screenshot‑friendly runs without exposing personal holdings.
+- **Insights‑First Layout:** Portfolio Insights cards (Positions, Top Holding, FX Exposure, Average Gain) visible immediately on first page — no scrolling needed to assess portfolio health.
+- **Clear CAD home‑currency total** with native‑currency context preserved on each holding to avoid conversion ambiguity.
+- **Multi‑account browsing** with collapsible filters by account, holder, and account type for focused analysis slices.
+- **Context‑aware headers** that adapt to your view: "Portfolio Overview" when viewing all accounts, "Overview" when filtered to specific accounts.
+- **Allocation pie chart** for a high‑signal snapshot of portfolio composition with fund/ETF names displayed.
+- **30‑day performance view** with two series that isolate FX impact: Market Performance (Fixed FX) vs Actual Performance (with FX).
+- **Dynamic table heights** that adapt to content — compact when filtering to a few holdings, larger with scrolling when viewing full portfolio.
+- **Transparent data‑provenance** indicator (Live, Cache, Mixed) and Last Updated timestamp for immediate data quality awareness.
+- **WCAG 2.1 Level AA Accessibility:** Keyboard navigation, screen reader support, validated color contrast, ARIA labels, print‑friendly layouts.
+- **Demo Mode** with realistic sample data for safe exploration and screenshot‑friendly runs without exposing personal holdings.
 
-What's new in v1.1
+What's new in v1.2
 
-- **WCAG 2.1 Level AA Accessibility** (PR #52): Comprehensive accessibility features including validated color contrast (all colors meet 4.5:1 minimum), keyboard navigation with visible focus indicators, ARIA labels on all charts and interactive elements, skip navigation for screen readers, print-friendly stylesheet, and support for reduced-motion and high-contrast preferences.
-- **Enhanced Holdings Table** (PR #41): Fund/ETF names now displayed alongside tickers with persistent caching, no repeated API calls.
-- **Improved UX** (Issues #39-41): Context-aware refresh UI, collapsible sidebar filters with count badges, fintech-inspired metric cards showing FX exposure and portfolio highlights.
-- **Accessibility Documentation:** New `ACCESSIBILITY.md` with feature details, testing guidelines, and contributor requirements. DEVELOPMENT.md updated with accessibility checklist for PRs.
+- **Responsive Widescreen Layout** (PR #54): Complete redesign of information hierarchy — Portfolio Insights moved above charts, key metrics visible on first page, logical flow from overview to insights to visual charts to detailed tables. Dynamic table heights (200-600px) adapt to filtered content.
+- **Context-Aware UI** (PR #54): Headers change based on filter state ("Portfolio Overview" vs "Overview"), tables resize based on content, optimized vertical spacing ensures insights are visible without scrolling.
+- **Better UX** (PR #54): First page now shows complete portfolio health, reduced from 3 screenshots to 2 to capture full interface, dramatically reduced vertical scrolling on widescreen displays.
 
 ***
 
