@@ -33,6 +33,10 @@ Built for Canadian and cross‑border investors who want decision‑ready insigh
 PortoDash shows native‑currency values alongside CAD totals so you instantly see what moved because of markets versus what moved because of FX.
 A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every number on screen, while a refreshed fintech‑inspired theme keeps the UI sharp across large KPI grids.
 
+### Demo
+
+[Screencast Demo](https://github.com/user-attachments/assets/9642aa6a-9977-4935-bed6-60177fab051a)
+
 ***
 
 ## User features
