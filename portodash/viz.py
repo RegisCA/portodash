@@ -238,11 +238,11 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
             fig.data[0].line.color = '#6B7280'  # Gray for fixed FX baseline
             fig.data[0].line.width = 2
             fig.data[0].line.dash = 'dot'
-            fig.data[0].name = '📊 Market (Fixed FX)'
+            fig.data[0].name = 'Market (Fixed FX)'
             
             fig.data[1].line.color = '#00D46A'  # Mint green for actual (Wealthsimple signature)
             fig.data[1].line.width = 3
-            fig.data[1].name = '💰 Actual (with FX)'
+            fig.data[1].name = 'Actual (with FX)'
             
             fig.update_layout(
                 hovermode='x unified',
