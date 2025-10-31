@@ -1,0 +1,1 @@
+Contributions are welcome—especially around UX polish, caching strategies, data modeling, and richer multi‑currency analytics that maintain the project’s clarity‑first philosophy. Open an issue for discussion or submit a PR with notes on UX and edge‑case considerations to keep review focused.
