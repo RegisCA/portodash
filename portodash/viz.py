@@ -13,7 +13,10 @@ def make_allocation_pie(df, fund_names_map=None):
         return px.pie(values=[], names=[], title="Allocation")
 
     # remove TOTAL row if present
-    d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df.copy()
+    if 'ticker' in df.columns:
+        d = df[df['ticker'] != 'TOTAL'].copy()
+    else:
+        d = df.copy()
     
     # Calculate percentages for label threshold
     total_value = d['current_value'].sum()
