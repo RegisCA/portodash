@@ -16,16 +16,17 @@ from portodash.fx import get_fx_rates
 from portodash.viz import make_allocation_pie, make_30d_performance_chart, make_snapshot_performance_chart
 from portodash.fund_names import get_fund_names, format_ticker_with_name
 from portodash.theme import (
-    get_section_label,
     inject_modern_fintech_css,
     inject_typography_css,
+    inject_accessibility_css,
+    render_metric_card,
     render_metric_grid,
     render_page_title,
     render_section_header,
+    render_subsection_header,
     render_sidebar_subtitle,
     render_sidebar_title,
-    render_subsection_header,
-    render_metric_card,
+    get_section_label,
 )
 
 
@@ -82,11 +83,20 @@ def load_portfolio(path):
 
 def main():
     st.set_page_config(page_title='PortoDash', layout='wide')
+    # Inject CSS for modern styling and accessibility
     inject_modern_fintech_css()
     inject_typography_css()
+    inject_accessibility_css()
+
+    # Skip link for screen readers
+    from portodash.theme import render_skip_link
+    st.markdown(render_skip_link(), unsafe_allow_html=True)
 
     st.markdown(render_page_title('PortoDash'), unsafe_allow_html=True)
     st.caption('Real-time multi-currency overview with transparent FX attribution.')
+    
+    # Main content landmark for skip link
+    st.markdown('<div id="main-content"></div>', unsafe_allow_html=True)
 
     # Initialize session state for price caching and rate limiting
     if 'prices_cache' not in st.session_state:

@@ -12,7 +12,7 @@ def make_allocation_pie(df, fund_names_map=None):
     if df.empty:
         return px.pie(values=[], names=[], title="Allocation")
 
-    # remove TOTAL row if present
+    # remove TOTAL row if present - use .copy() to avoid SettingWithCopyWarning
     if 'ticker' in df.columns:
         d = df[df['ticker'] != 'TOTAL'].copy()
     else:
