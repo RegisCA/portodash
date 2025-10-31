@@ -447,9 +447,18 @@ def main():
         st.warning("No holdings match the current filters. Adjust your selections to view positions.")
         return
 
+    # Determine if filters are active by checking session state
+    # Filters are active if user has selected fewer items than total available
+    filters_active = (
+        len(st.session_state.get('filter_nicknames', [])) < len(all_nicknames) or
+        len(st.session_state.get('filter_holders', [])) < len(all_holders) or
+        len(st.session_state.get('filter_types', [])) < len(all_types)
+    )
+    
     # Summary KPIs - all values in CAD
-    st.markdown("---")
-    st.markdown(render_section_header('Portfolio Overview'), unsafe_allow_html=True)
+    # Use context-aware headers: "Portfolio" when viewing all, "Overview" when filtered
+    overview_header = 'Overview' if filters_active else 'Portfolio Overview'
+    st.markdown(render_section_header(overview_header), unsafe_allow_html=True)
     
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
     total_cost = df.loc[df['ticker'] == 'TOTAL', 'cost_total'].squeeze() if 'TOTAL' in df['ticker'].values else df['cost_total'].sum()
@@ -483,101 +492,9 @@ def main():
                 st.markdown(f"- 1 {curr} = **{rate:.4f}** CAD")
             st.caption('Exchange rates cache for up to 12 hours (open.er-api.com).')
 
-    st.markdown("---")
-    st.markdown(render_section_header('Holdings'), unsafe_allow_html=True)
-    
-    def color_gain_pct(val):
-        if pd.isna(val) or val is None:
-            return ''
-        if val > 0:
-            return 'background-color: rgba(16, 185, 129, 0.12); color: #047857; font-weight: 600;'
-        if val < 0:
-            return 'background-color: rgba(239, 68, 68, 0.12); color: #B91C1C; font-weight: 600;'
-        return 'color: var(--pd-neutral);'
-
-    # Show account breakdown if viewing multiple accounts (based on filtered results)
-    # Count unique account nicknames in the filtered holdings
-    unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
-    if len(unique_accounts) > 1 and 'account' in df.columns:
-        st.markdown(render_subsection_header('By Account'), unsafe_allow_html=True)
-        # Group by account (excluding TOTAL row)
-        accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
-            'current_value': 'sum',
-            'cost_total': 'sum',
-            'gain': 'sum'
-        }).reset_index()
-        accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
-        accounts_df = accounts_df.sort_values('current_value', ascending=False)
-
-        st.dataframe(
-            accounts_df.style
-            .format({
-                'current_value': '${:,.2f}',
-                'cost_total': '${:,.2f}',
-                'gain': '${:,.2f}',
-                'gain_pct': '{:.2%}'
-            })
-            .map(color_gain_pct, subset=['gain_pct'])
-            .set_table_attributes("class='data-table'"),
-            width='stretch',
-            column_config={
-                'account': st.column_config.TextColumn('Account', width='medium'),
-                'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
-                'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
-                'gain': st.column_config.NumberColumn('Gain', width='medium'),
-                'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            }
-        )
-        
-    st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
-    
+    # Calculate portfolio insights and metrics
     # Split dataframe into holdings and remove the aggregate TOTAL row
     df_holdings = df[df['ticker'] != 'TOTAL'].copy()
-    
-    # Fetch fund names for all tickers
-    tickers_in_table = df_holdings['ticker'].unique().tolist()
-    fund_names_map = get_fund_names(tickers_in_table)
-    
-    # Add fund/ETF name column
-    df_holdings['fund_name'] = df_holdings['ticker'].map(
-        lambda t: format_ticker_with_name(t, fund_names_map.get(t, t))
-    )
-    
-    # Reorder columns to put fund_name first
-    cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
-    df_holdings = df_holdings[cols]
-    
-    # Display holdings table (sortable)
-    st.dataframe(
-        df_holdings.style
-        .format({
-            'shares': '{:,.4f}',
-            'cost_basis': '{:,.4f}',
-            'price': '${:,.4f}',
-            'current_value': '${:,.2f}',
-            'cost_total': '${:,.2f}',
-            'gain': '${:,.2f}',
-            'allocation_pct': '{:.2%}',
-            'gain_pct': '{:.2%}'
-        })
-        .map(color_gain_pct, subset=['gain_pct'])
-        .set_table_attributes("class='data-table'"),
-        width='stretch',
-        column_config={
-            'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
-            'account': st.column_config.TextColumn('Account', width='medium'),
-            'ticker': st.column_config.TextColumn('Ticker', width='small'),
-            'currency': st.column_config.TextColumn('Currency', width='small'),
-            'shares': st.column_config.NumberColumn('Shares', width='small'),
-            'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
-            'price': st.column_config.NumberColumn('Price', width='small'),
-            'current_value': st.column_config.NumberColumn('Current Value', width='small'),
-            'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
-            'gain': st.column_config.NumberColumn('Gain', width='small'),
-            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
-        },
-    )
     
     if not df_holdings.empty:
         positions_count = len(df_holdings)
@@ -656,6 +573,10 @@ def main():
             )
         )
 
+        # Portfolio Insights - display metric cards
+        # Use context-aware header: just "Insights" to match other section headers
+        insights_header = 'Insights' if filters_active else 'Portfolio Insights'
+        st.markdown(render_section_header(insights_header), unsafe_allow_html=True)
         st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
 
     # Allocation chart
@@ -685,6 +606,110 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
+
+    # Holdings section - detailed tables
+    st.markdown("---")
+    st.markdown(render_section_header('Holdings'), unsafe_allow_html=True)
+    
+    # Helper function for styling gain percentages
+    def color_gain_pct(val):
+        if pd.isna(val) or val is None:
+            return ''
+        if val > 0:
+            return 'background-color: rgba(16, 185, 129, 0.12); color: #047857; font-weight: 600;'
+        if val < 0:
+            return 'background-color: rgba(239, 68, 68, 0.12); color: #B91C1C; font-weight: 600;'
+        return 'color: var(--pd-neutral);'
+    
+    # Fetch fund names for all tickers in holdings
+    tickers_in_table = df_holdings['ticker'].unique().tolist()
+    fund_names_map = get_fund_names(tickers_in_table)
+    
+    # Add fund/ETF name column
+    df_holdings['fund_name'] = df_holdings['ticker'].map(
+        lambda t: format_ticker_with_name(t, fund_names_map.get(t, t))
+    )
+    
+    # Reorder columns to put fund_name first
+    cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
+    df_holdings = df_holdings[cols]
+    
+    # Show account breakdown if viewing multiple accounts
+    unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
+    if len(unique_accounts) > 1 and 'account' in df.columns:
+        # Make "By Account" collapsible to save vertical space (default collapsed)
+        with st.expander("**By Account**", expanded=False):
+            # Group by account (excluding TOTAL row)
+            accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
+                'current_value': 'sum',
+                'cost_total': 'sum',
+                'gain': 'sum'
+            }).reset_index()
+            accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
+            accounts_df = accounts_df.sort_values('current_value', ascending=False)
+
+            st.dataframe(
+                accounts_df.style
+                .format({
+                    'current_value': '${:,.2f}',
+                    'cost_total': '${:,.2f}',
+                    'gain': '${:,.2f}',
+                    'gain_pct': '{:.2%}'
+                })
+                .map(color_gain_pct, subset=['gain_pct'])
+                .set_table_attributes("class='data-table'"),
+                width='stretch',
+                column_config={
+                    'account': st.column_config.TextColumn('Account', width='medium'),
+                    'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+                    'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
+                    'gain': st.column_config.NumberColumn('Gain', width='medium'),
+                    'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+                }
+            )
+    
+    st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
+    
+    # Calculate dynamic table height based on number of rows
+    # Row height ~35px + header ~42px + padding, cap between 200px and 600px
+    num_rows = len(df_holdings)
+    row_height = 35
+    header_height = 42
+    padding = 20
+    dynamic_height = min(max(num_rows * row_height + header_height + padding, 200), 600)
+    
+    # Display holdings table (sortable) with dynamic height
+    st.dataframe(
+        df_holdings.style
+        .format({
+            'shares': '{:,.4f}',
+            'cost_basis': '{:,.4f}',
+            'price': '${:,.4f}',
+            'current_value': '${:,.2f}',
+            'cost_total': '${:,.2f}',
+            'gain': '${:,.2f}',
+            'allocation_pct': '{:.2%}',
+            'gain_pct': '{:.2%}'
+        })
+        .map(color_gain_pct, subset=['gain_pct'])
+        .set_table_attributes("class='data-table'"),
+        width='stretch',
+        height=dynamic_height,  # Dynamic height based on row count, capped at 600px
+        column_config={
+            'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
+            'account': st.column_config.TextColumn('Account', width='medium'),
+            'ticker': st.column_config.TextColumn('Ticker', width='small'),
+            'currency': st.column_config.TextColumn('Currency', width='small'),
+            'shares': st.column_config.NumberColumn('Shares', width='small'),
+            'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
+            'price': st.column_config.NumberColumn('Price', width='small'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='small'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
+            'gain': st.column_config.NumberColumn('Gain', width='small'),
+            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+        },
+    )
 
     # Data Management
     st.markdown("---")
