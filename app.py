@@ -499,35 +499,36 @@ def main():
     # Count unique account nicknames in the filtered holdings
     unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
     if len(unique_accounts) > 1 and 'account' in df.columns:
-        st.markdown(render_subsection_header('By Account'), unsafe_allow_html=True)
-        # Group by account (excluding TOTAL row)
-        accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
-            'current_value': 'sum',
-            'cost_total': 'sum',
-            'gain': 'sum'
-        }).reset_index()
-        accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
-        accounts_df = accounts_df.sort_values('current_value', ascending=False)
+        # Make "By Account" collapsible to save vertical space (default collapsed)
+        with st.expander("**By Account**", expanded=False):
+            # Group by account (excluding TOTAL row)
+            accounts_df = df[df['account'] != 'TOTAL'].groupby('account').agg({
+                'current_value': 'sum',
+                'cost_total': 'sum',
+                'gain': 'sum'
+            }).reset_index()
+            accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
+            accounts_df = accounts_df.sort_values('current_value', ascending=False)
 
-        st.dataframe(
-            accounts_df.style
-            .format({
-                'current_value': '${:,.2f}',
-                'cost_total': '${:,.2f}',
-                'gain': '${:,.2f}',
-                'gain_pct': '{:.2%}'
-            })
-            .map(color_gain_pct, subset=['gain_pct'])
-            .set_table_attributes("class='data-table'"),
-            width='stretch',
-            column_config={
-                'account': st.column_config.TextColumn('Account', width='medium'),
-                'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
-                'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
-                'gain': st.column_config.NumberColumn('Gain', width='medium'),
-                'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            }
-        )
+            st.dataframe(
+                accounts_df.style
+                .format({
+                    'current_value': '${:,.2f}',
+                    'cost_total': '${:,.2f}',
+                    'gain': '${:,.2f}',
+                    'gain_pct': '{:.2%}'
+                })
+                .map(color_gain_pct, subset=['gain_pct'])
+                .set_table_attributes("class='data-table'"),
+                width='stretch',
+                column_config={
+                    'account': st.column_config.TextColumn('Account', width='medium'),
+                    'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+                    'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
+                    'gain': st.column_config.NumberColumn('Gain', width='medium'),
+                    'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+                }
+            )
         
     st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
     
@@ -547,7 +548,7 @@ def main():
     cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
     df_holdings = df_holdings[cols]
     
-    # Display holdings table (sortable)
+    # Display holdings table (sortable) with max height for widescreen layouts
     st.dataframe(
         df_holdings.style
         .format({
@@ -563,6 +564,7 @@ def main():
         .map(color_gain_pct, subset=['gain_pct'])
         .set_table_attributes("class='data-table'"),
         width='stretch',
+        height=600,  # Limit height to reduce vertical scrolling, table will have internal scroll
         column_config={
             'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
@@ -656,26 +658,21 @@ def main():
             )
         )
 
-    # Allocation chart and portfolio metrics in two-column layout for widescreen
+        st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
+
+    # Allocation chart
     st.markdown("---")
     st.markdown(render_section_header('Allocation'), unsafe_allow_html=True)
     
-    # Two-column layout: chart on left, metrics on right
-    col_chart, col_metrics = st.columns([0.45, 0.55])
+    # Get fund names for pie chart labels
+    pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
+    pie_fund_names = get_fund_names(pie_tickers)
     
-    with col_chart:
-        # Get fund names for pie chart labels
-        pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
-        pie_fund_names = get_fund_names(pie_tickers)
-        
-        # Semantic wrapper with ARIA label for screen readers
-        st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
-        pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-        st.plotly_chart(pie, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with col_metrics:
-        st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
+    # Semantic wrapper with ARIA label for screen readers
+    st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
+    pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
+    st.plotly_chart(pie, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
     st.markdown("---")
