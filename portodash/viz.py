@@ -15,13 +15,23 @@ def make_allocation_pie(df, fund_names_map=None):
     # remove TOTAL row if present
     d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df.copy()
     
-    # Add display labels with fund names
+    # Calculate percentages for label threshold
+    total_value = d['current_value'].sum()
+    d['percentage'] = (d['current_value'] / total_value * 100)
+    
+    # Add display labels with fund names (for hover and legend)
     if fund_names_map:
         d['display_label'] = d['ticker'].apply(
             lambda t: f"{t} — {fund_names_map[t]}" if t in fund_names_map and fund_names_map[t] != t else t
         )
     else:
         d['display_label'] = d['ticker']
+    
+    # Create callout text: show ticker + % only if >= 5%, otherwise empty
+    d['callout_text'] = d.apply(
+        lambda row: f"{row['ticker']}<br>{row['percentage']:.1f}%" if row['percentage'] >= 5 else '',
+        axis=1
+    )
     
     # Clean color palette - Wealthsimple inspired
     colors = ['#00D46A', '#2E86AB', '#A23B72', '#F18F01', '#C73E1D', 
@@ -30,14 +40,15 @@ def make_allocation_pie(df, fund_names_map=None):
     fig = px.pie(
         d, 
         names='display_label', 
-        values='current_value', 
+        values='current_value',
         hole=0.4,
         color_discrete_sequence=colors
     )
     
     fig.update_traces(
         textposition='outside',
-        textinfo='label+percent',
+        text=d['callout_text'].tolist(),
+        textinfo='text',
         textfont_size=13,
         textfont_family='system-ui, -apple-system, sans-serif',
         marker=dict(line=dict(color='#FFFFFF', width=2)),
