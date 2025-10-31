@@ -471,13 +471,24 @@ def _accessibility_css() -> str:
         /* Hide interactive elements */
         [data-testid="stSidebar"],
         .stButton,
+        .stButton > button,
+        button,
         .stSelectbox,
         .stMultiSelect,
         .stSlider,
         .stNumberInput,
+        .stTextInput,
+        .stDateInput,
+        .stTimeInput,
+        .stCheckbox,
+        .stRadio,
         header,
-        footer {
+        footer,
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"] {
             display: none !important;
+            visibility: hidden !important;
         }
 
         /* Optimize layout for print */
