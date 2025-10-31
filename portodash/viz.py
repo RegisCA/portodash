@@ -2,13 +2,26 @@ import plotly.express as px
 import pandas as pd
 
 
-def make_allocation_pie(df):
-    """Return a Plotly pie chart for allocation with clean, modern styling."""
+def make_allocation_pie(df, fund_names_map=None):
+    """Return a Plotly pie chart for allocation with clean, modern styling.
+    
+    Args:
+        df: DataFrame with ticker and current_value columns
+        fund_names_map: Optional dict mapping tickers to long names
+    """
     if df.empty:
         return px.pie(values=[], names=[], title="Allocation")
 
     # remove TOTAL row if present
-    d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df
+    d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df.copy()
+    
+    # Add display labels with fund names
+    if fund_names_map:
+        d['display_label'] = d['ticker'].apply(
+            lambda t: f"{t} — {fund_names_map[t]}" if t in fund_names_map and fund_names_map[t] != t else t
+        )
+    else:
+        d['display_label'] = d['ticker']
     
     # Clean color palette - Wealthsimple inspired
     colors = ['#00D46A', '#2E86AB', '#A23B72', '#F18F01', '#C73E1D', 
@@ -16,7 +29,7 @@ def make_allocation_pie(df):
     
     fig = px.pie(
         d, 
-        names='ticker', 
+        names='display_label', 
         values='current_value', 
         hole=0.4,
         color_discrete_sequence=colors
@@ -27,7 +40,8 @@ def make_allocation_pie(df):
         textinfo='label+percent',
         textfont_size=13,
         textfont_family='system-ui, -apple-system, sans-serif',
-        marker=dict(line=dict(color='#FFFFFF', width=2))
+        marker=dict(line=dict(color='#FFFFFF', width=2)),
+        hovertemplate='<b>%{label}</b><br>Value: %{value:$,.0f} CAD<br>Share: %{percent}<extra></extra>'
     )
     
     fig.update_layout(

@@ -641,7 +641,12 @@ def main():
     # Allocation chart
     st.markdown("---")
     st.markdown(render_section_header('Allocation'), unsafe_allow_html=True)
-    pie = make_allocation_pie(df)
+    
+    # Get fund names for pie chart labels
+    pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
+    pie_fund_names = get_fund_names(pie_tickers)
+    
+    pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
     st.plotly_chart(pie, use_container_width=True)
 
     # Performance chart from snapshots
