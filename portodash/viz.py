@@ -304,7 +304,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
             fig.update_traces(
                 line_color='#00D46A',
                 line_width=3,
-                name='Portfolio Value'
+                name='Portfolio Value',
+                showlegend=True
             )
             
             fig.update_layout(
