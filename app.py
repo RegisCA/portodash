@@ -650,7 +650,7 @@ def main():
     
     # Use snapshot-based chart (from historical.csv)
     if os.path.exists(HIST_CSV):
-        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
+        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
         st.plotly_chart(perf_fig, use_container_width=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')

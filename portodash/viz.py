@@ -80,7 +80,7 @@ def make_30d_performance_chart(hist_prices, holdings_list):
     return fig
 
 
-def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
+def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers=None):
     """Create a performance chart from historical.csv snapshots with FX impact analysis.
     
     Shows two lines:
@@ -91,6 +91,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         csv_path: Path to historical.csv file
         days: Number of days to show (default 30)
         fx_csv_path: Path to fx_rates.csv file (optional)
+        tickers: List of tickers to include (optional, for filtering by account/holder/type)
     
     Returns:
         Plotly figure showing portfolio value over time from snapshots
@@ -107,6 +108,13 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         
         if df.empty:
             return px.line(title='Performance (no snapshot data)')
+        
+        # Filter by tickers if provided (for account/holder/type filtering)
+        if tickers is not None:
+            df = df[df['ticker'].isin(tickers)]
+            
+            if df.empty:
+                return px.line(title='Performance (no data for selected filters)')
         
         # Parse dates - handle ISO8601 format
         df['date'] = pd.to_datetime(df['date'], format='ISO8601')
