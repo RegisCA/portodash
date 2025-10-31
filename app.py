@@ -130,6 +130,7 @@ def main():
         st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
 
         st.markdown(render_sidebar_subtitle(get_section_label("date")), unsafe_allow_html=True)
+        st.markdown('<div aria-label="Performance period slider: Select the number of days to display in the performance chart, from 7 to 365 days">', unsafe_allow_html=True)
         days = st.slider(
             'Performance chart period',
             min_value=7,
@@ -138,6 +139,7 @@ def main():
             step=1,
             help='Number of days to display in performance chart',
         )
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
         st.markdown(render_sidebar_title(get_section_label("filter")), unsafe_allow_html=True)
@@ -163,15 +165,18 @@ def main():
     
     with st.sidebar:
         # Reset all filters button at the top for visibility
+        st.markdown('<div aria-label="Reset all portfolio filters button: Click to clear all account, holder, and type filters">', unsafe_allow_html=True)
         if st.button('Reset All Filters', use_container_width=True, key='reset_filters_btn'):
             # Update session state to all options
             st.session_state.filter_nicknames = all_nicknames
             st.session_state.filter_holders = all_holders
             st.session_state.filter_types = all_types
             st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Account filter with count badge
         with st.expander(f"**Accounts** ({len(all_nicknames)})", expanded=True):
+            st.markdown('<div aria-label="Account filter: Select one or more accounts to filter the portfolio view">', unsafe_allow_html=True)
             selected_nicknames = st.multiselect(
                 "Select accounts",
                 options=all_nicknames,
@@ -180,9 +185,11 @@ def main():
                 key='filter_nicknames',
                 label_visibility='collapsed',
             )
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Holder filter with count badge
         with st.expander(f"**Holders** ({len(all_holders)})", expanded=False):
+            st.markdown('<div aria-label="Holder filter: Select one or more account holders to filter the portfolio view">', unsafe_allow_html=True)
             selected_holders = st.multiselect(
                 "Select holders",
                 options=all_holders,
@@ -190,9 +197,11 @@ def main():
                 key='filter_holders',
                 label_visibility='collapsed',
             )
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # Type filter with count badge
         with st.expander(f"**Account Types** ({len(all_types)})", expanded=False):
+            st.markdown('<div aria-label="Account type filter: Select one or more account types (TFSA, RRSP, etc.) to filter the portfolio view">', unsafe_allow_html=True)
             selected_types = st.multiselect(
                 "Select types",
                 options=all_types,
@@ -200,6 +209,7 @@ def main():
                 key='filter_types',
                 label_visibility='collapsed',
             )
+            st.markdown('</div>', unsafe_allow_html=True)
     
     # Rate limiting: cooldown period in seconds
     COOLDOWN_SECONDS = 60
@@ -656,8 +666,11 @@ def main():
     pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
     pie_fund_names = get_fund_names(pie_tickers)
     
+    # Semantic wrapper with ARIA label for screen readers
+    st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
     pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
     st.plotly_chart(pie, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
     st.markdown("---")
@@ -665,8 +678,11 @@ def main():
     
     # Use snapshot-based chart (from historical.csv)
     if os.path.exists(HIST_CSV):
+        # Semantic wrapper with ARIA label for screen readers
+        st.markdown(f'<div role="img" aria-label="Performance line chart showing portfolio value over the last {days} days with FX impact analysis">', unsafe_allow_html=True)
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
         st.plotly_chart(perf_fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
 
@@ -687,6 +703,7 @@ def main():
         elif not can_refresh:
             refresh_help = 'Cooldown active - wait before retrying'
         
+        st.markdown('<div aria-label="Refresh prices button: Fetch latest prices from Yahoo Finance for all portfolio holdings">', unsafe_allow_html=True)
         if st.button('Refresh prices', disabled=refresh_disabled, use_container_width=True, help=refresh_help):
             # Trigger a manual refresh
             with st.spinner('Fetching latest prices...'):
@@ -712,19 +729,23 @@ def main():
                         st.session_state.last_error = error_msg
                         st.error(f'Fetch failed: {error_msg}')
                     st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Show error message if present
         if st.session_state.last_error:
             st.caption(f"⚠️ {st.session_state.last_error}")
     
     with col2:
+        st.markdown('<div aria-label="Update daily snapshot button: Save current portfolio prices to historical data for performance tracking">', unsafe_allow_html=True)
         if st.button('Update daily snapshot', use_container_width=True, help='Save current prices to historical.csv'):
             written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
             st.success(f"Updated today's snapshot ({len(written)} holdings)")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     with col3:
         # Export historical CSV
         if os.path.exists(HIST_CSV):
+            st.markdown('<div aria-label="Download snapshots CSV button: Export historical portfolio data to a CSV file">', unsafe_allow_html=True)
             st.download_button(
                 'Download snapshots CSV', 
                 data=open(HIST_CSV, 'rb').read(), 
@@ -732,6 +753,7 @@ def main():
                 use_container_width=True,
                 help='Export all historical snapshots'
             )
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info('Historical dataset not started. Select "Update daily snapshot" to begin tracking performance.')
 

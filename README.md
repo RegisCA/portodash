@@ -3,9 +3,12 @@
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-1.30+-red.svg)
+![WCAG 2.1 Level AA](https://img.shields.io/badge/accessibility-WCAG%202.1%20Level%20AA-brightgreen.svg)
 
 A lightweight Streamlit portfolio tracker that makes multi-currency portfolios legible by separating market returns from FX effects while keeping a trustworthy CAD home‑currency total and native‑currency context per holding.
 Built for Canadian and cross‑border investors who want decision‑ready insights, clear data provenance, and a fast UI that remains usable even when APIs are flaky.
+
+**v1.1 Update:** Now with WCAG 2.1 Level AA accessibility compliance — keyboard navigation, screen reader support, validated color contrast, and print-friendly layouts.
 
 ## Table of contents
 
@@ -41,15 +44,12 @@ A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every
 - Transparent data‑provenance indicator (Live, Cache, Mixed) and Last Updated timestamp for immediate data quality awareness.
 - Demo Mode with realistic sample data for safe exploration and screenshot‑friendly runs without exposing personal holdings.
 
-What's new (recently merged)
+What's new in v1.1
 
-- **Phase 2 UX Polish** (Issues #39-41): Context-aware refresh UI moved to Data Management section, collapsible sidebar filters with count badges and working reset button, enhanced holdings table with fund/ETF names via persistent cache.
-- PR \#41: Fintech‑style theme utilities (`render_metric_card`, `render_metric_grid`, typography helpers) for consistent headings, cards, and tables.
-- PR \#40: Holdings summary cards now highlight FX exposure, top positions, and average gains for quick context without scanning raw tables.
-- PR \#39: Portfolio copy and messaging tightened throughout the app to clarify refresh flows, scheduler health, and historical snapshot guidance.
-- PR \#33: Dual‑series performance chart that cleanly separates market returns from FX, enabling like‑for‑like interpretation of portfolio moves.
-- PR \#34: Demo Mode to explore the app with realistic sample data while preserving your real files via safe backups.
-- PR \#30: Portfolio UI and data model improvements that strengthen multi‑account filtering, holdings breakdowns, and provenance display.
+- **WCAG 2.1 Level AA Accessibility** (PR #52): Comprehensive accessibility features including validated color contrast (all colors meet 4.5:1 minimum), keyboard navigation with visible focus indicators, ARIA labels on all charts and interactive elements, skip navigation for screen readers, print-friendly stylesheet, and support for reduced-motion and high-contrast preferences.
+- **Enhanced Holdings Table** (PR #41): Fund/ETF names now displayed alongside tickers with persistent caching, no repeated API calls.
+- **Improved UX** (Issues #39-41): Context-aware refresh UI, collapsible sidebar filters with count badges, fintech-inspired metric cards showing FX exposure and portfolio highlights.
+- **Accessibility Documentation:** New `ACCESSIBILITY.md` with feature details, testing guidelines, and contributor requirements. DEVELOPMENT.md updated with accessibility checklist for PRs.
 
 ***
 
