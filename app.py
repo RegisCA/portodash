@@ -447,8 +447,13 @@ def main():
         st.warning("No holdings match the current filters. Adjust your selections to view positions.")
         return
 
-    # Determine if filters are active
-    filters_active = bool(selected_nicknames or selected_holders or selected_types)
+    # Determine if filters are active by checking session state
+    # Filters are active if user has selected fewer items than total available
+    filters_active = (
+        len(st.session_state.get('filter_nicknames', [])) < len(all_nicknames) or
+        len(st.session_state.get('filter_holders', [])) < len(all_holders) or
+        len(st.session_state.get('filter_types', [])) < len(all_types)
+    )
     
     # Summary KPIs - all values in CAD
     # Use context-aware headers: "Portfolio" when viewing all, "Overview" when filtered
@@ -665,7 +670,15 @@ def main():
     
     st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
     
-    # Display holdings table (sortable) with max height for widescreen layouts
+    # Calculate dynamic table height based on number of rows
+    # Row height ~35px + header ~42px + padding, cap between 200px and 600px
+    num_rows = len(df_holdings)
+    row_height = 35
+    header_height = 42
+    padding = 20
+    dynamic_height = min(max(num_rows * row_height + header_height + padding, 200), 600)
+    
+    # Display holdings table (sortable) with dynamic height
     st.dataframe(
         df_holdings.style
         .format({
@@ -681,7 +694,7 @@ def main():
         .map(color_gain_pct, subset=['gain_pct'])
         .set_table_attributes("class='data-table'"),
         width='stretch',
-        height=600,  # Limit height to reduce vertical scrolling, table will have internal scroll
+        height=dynamic_height,  # Dynamic height based on row count, capped at 600px
         column_config={
             'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
