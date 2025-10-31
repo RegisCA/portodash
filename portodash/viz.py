@@ -310,6 +310,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
             fig.update_layout(
                 hovermode='x unified',
                 yaxis_tickformat='$,.0f',
+                showlegend=True,
                 legend=dict(
                     orientation='h',
                     yanchor='top',
