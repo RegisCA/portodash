@@ -381,6 +381,183 @@ def _typography_css() -> str:
     """
 
 
+def _accessibility_css() -> str:
+    """Return CSS for WCAG 2.1 Level AA accessibility compliance."""
+
+    return """
+    <style>
+    /* Keyboard Focus Styles - WCAG 2.1 Success Criterion 2.4.7 */
+    *:focus-visible {
+        outline: 3px solid var(--pd-secondary);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    /* Enhanced focus for interactive elements */
+    .stButton > button:focus-visible,
+    .stSelectbox select:focus-visible,
+    .stMultiSelect:focus-visible,
+    .stNumberInput input:focus-visible,
+    .stSlider:focus-visible,
+    a:focus-visible {
+        outline: 3px solid var(--pd-secondary);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Skip to main content link - for screen readers */
+    .skip-to-main {
+        position: absolute;
+        left: -9999px;
+        z-index: 999;
+        padding: 1rem 1.5rem;
+        background: var(--pd-secondary);
+        color: white;
+        text-decoration: none;
+        border-radius: 0 0 8px 0;
+        font-weight: 600;
+    }
+
+    .skip-to-main:focus {
+        left: 0;
+        top: 0;
+    }
+
+    /* Ensure sufficient color contrast for links */
+    a {
+        color: #4F46E5; /* Darker indigo for better contrast (5.74:1) */
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    a:hover {
+        color: #4338CA; /* Even darker on hover */
+        text-decoration-thickness: 2px;
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+        :root {
+            --pd-primary: #000000;
+            --pd-neutral: #4B5563;
+            --pd-border: #9CA3AF;
+        }
+
+        .stButton > button,
+        .metric-card,
+        [data-testid="stDataFrame"] {
+            border-width: 2px;
+        }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+
+        .stButton > button {
+            transition: none;
+            transform: none !important;
+        }
+    }
+
+    /* Print Stylesheet - WCAG Success Criterion 1.4.13 */
+    @media print {
+        /* Hide interactive elements */
+        [data-testid="stSidebar"],
+        .stButton,
+        .stSelectbox,
+        .stMultiSelect,
+        .stSlider,
+        .stNumberInput,
+        header,
+        footer {
+            display: none !important;
+        }
+
+        /* Optimize layout for print */
+        .block-container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+
+        /* Ensure proper page breaks */
+        .section-header {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+
+        .metric-card,
+        [data-testid="stDataFrame"],
+        .stPlotlyChart {
+            page-break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+
+        /* Improve chart readability */
+        .stPlotlyChart {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        /* Print-friendly colors */
+        body {
+            background: white !important;
+            color: black !important;
+        }
+
+        .metric-card {
+            border: 1px solid #000 !important;
+            background: white !important;
+        }
+
+        /* Add page header/footer info */
+        @page {
+            margin: 2cm;
+            @top-right {
+                content: "PortoDash Portfolio Report";
+            }
+            @bottom-right {
+                content: counter(page);
+            }
+        }
+
+        /* Ensure tables print properly */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table thead {
+            display: table-header-group;
+        }
+
+        table tbody {
+            display: table-row-group;
+        }
+    }
+
+    /* Screen reader only content */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+    </style>
+    """
+
+
 def inject_modern_fintech_css() -> None:
     """Inject the modern fintech base CSS into Streamlit."""
 
@@ -391,6 +568,12 @@ def inject_typography_css() -> None:
     """Inject typography-specific CSS into Streamlit."""
 
     st.markdown(_typography_css(), unsafe_allow_html=True)
+
+
+def inject_accessibility_css() -> None:
+    """Inject WCAG 2.1 Level AA accessibility CSS into Streamlit."""
+
+    st.markdown(_accessibility_css(), unsafe_allow_html=True)
 
 
 _SECTION_LABELS: Dict[str, str] = {
