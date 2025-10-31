@@ -11,6 +11,10 @@ fx_rates.csv
 !fx_rates.csv.sample
 !historical.csv.sample
 
+# Fund names cache - PRIVATE, reveals portfolio holdings
+fund_names.json
+!fund_names.json.sample
+
 # Demo mode - swap script state files
 .demo_mode
 *.real
