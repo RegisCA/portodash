@@ -88,8 +88,15 @@ def main():
     inject_typography_css()
     inject_accessibility_css()
 
+    # Skip link for screen readers
+    from portodash.theme import render_skip_link
+    st.markdown(render_skip_link(), unsafe_allow_html=True)
+
     st.markdown(render_page_title('PortoDash'), unsafe_allow_html=True)
     st.caption('Real-time multi-currency overview with transparent FX attribution.')
+    
+    # Main content landmark for skip link
+    st.markdown('<div id="main-content"></div>', unsafe_allow_html=True)
 
     # Initialize session state for price caching and rate limiting
     if 'prices_cache' not in st.session_state:

@@ -613,6 +613,11 @@ def render_sidebar_subtitle(text: str) -> str:
     return f"<div class='sidebar-subtitle'>{text}</div>"
 
 
+def render_skip_link() -> str:
+    """Render a skip-to-main-content link for screen readers."""
+    return '<a href="#main-content" class="skip-to-main">Skip to main content</a>'
+
+
 def format_metric(value: Number) -> str:
     """Format a number as a currency string for portfolio metrics."""
 
