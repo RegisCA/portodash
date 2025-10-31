@@ -250,10 +250,12 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
             fig.data[0].line.width = 2
             fig.data[0].line.dash = 'dot'
             fig.data[0].name = 'Market (Fixed FX)'
+            fig.data[0].hovertemplate = '%{y:$,.0f}<extra></extra>'
             
             fig.data[1].line.color = '#00D46A'  # Mint green for actual (Wealthsimple signature)
             fig.data[1].line.width = 3
             fig.data[1].name = 'Actual (with FX)'
+            fig.data[1].hovertemplate = '%{y:$,.0f}<extra></extra>'
             
             fig.update_layout(
                 hovermode='x unified',
@@ -272,7 +274,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='#E8EBED',
-                    gridwidth=1
+                    gridwidth=1,
+                    title=''
                 ),
                 yaxis=dict(
                     showgrid=True,
@@ -286,6 +289,9 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                     font_family='system-ui, -apple-system, sans-serif'
                 )
             )
+            
+            # Update x-axis to show formatted date in hover
+            fig.update_xaxes(hoverformat='%b %-d, %Y')
         else:
             # Single currency or no FX data - show single line
             # Use the actual values (they'll be the same as fixed if single currency)
@@ -305,7 +311,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 line_color='#00D46A',
                 line_width=3,
                 name='Portfolio Value',
-                showlegend=True
+                showlegend=True,
+                hovertemplate='%{y:$,.0f}<extra></extra>'
             )
             
             fig.update_layout(
@@ -326,7 +333,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='#E8EBED',
-                    gridwidth=1
+                    gridwidth=1,
+                    title=''
                 ),
                 yaxis=dict(
                     showgrid=True,
@@ -340,6 +348,9 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                     font_family='system-ui, -apple-system, sans-serif'
                 )
             )
+            
+            # Update x-axis to show formatted date in hover
+            fig.update_xaxes(hoverformat='%b %-d, %Y')
         
         return fig
     
