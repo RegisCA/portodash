@@ -166,7 +166,7 @@ def main():
     with st.sidebar:
         # Reset all filters button at the top for visibility
         st.markdown('<div aria-label="Reset all portfolio filters button: Click to clear all account, holder, and type filters">', unsafe_allow_html=True)
-        if st.button('Reset All Filters', use_container_width=True, key='reset_filters_btn'):
+        if st.button('Reset All Filters', width='stretch', key='reset_filters_btn'):
             # Update session state to all options
             st.session_state.filter_nicknames = all_nicknames
             st.session_state.filter_holders = all_holders
@@ -590,7 +590,7 @@ def main():
     # Semantic wrapper with ARIA label for screen readers
     st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
     pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-    st.plotly_chart(pie, use_container_width=True)
+    st.plotly_chart(pie, width='stretch')
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
@@ -602,7 +602,7 @@ def main():
         # Semantic wrapper with ARIA label for screen readers
         st.markdown(f'<div role="img" aria-label="Performance line chart showing portfolio value over the last {days} days with FX impact analysis">', unsafe_allow_html=True)
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
-        st.plotly_chart(perf_fig, use_container_width=True)
+        st.plotly_chart(perf_fig, width='stretch')
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
@@ -729,7 +729,7 @@ def main():
             refresh_help = 'Cooldown active - wait before retrying'
         
         st.markdown('<div aria-label="Refresh prices button: Fetch latest prices from Yahoo Finance for all portfolio holdings">', unsafe_allow_html=True)
-        if st.button('Refresh prices', disabled=refresh_disabled, use_container_width=True, help=refresh_help):
+        if st.button('Refresh prices', disabled=refresh_disabled, width='stretch', help=refresh_help):
             # Trigger a manual refresh
             with st.spinner('Fetching latest prices...'):
                 st.session_state.fetch_in_progress = True
@@ -762,7 +762,7 @@ def main():
     
     with col2:
         st.markdown('<div aria-label="Update daily snapshot button: Save current portfolio prices to historical data for performance tracking">', unsafe_allow_html=True)
-        if st.button('Update daily snapshot', use_container_width=True, help='Save current prices to historical.csv'):
+        if st.button('Update daily snapshot', width='stretch', help='Save current prices to historical.csv'):
             written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
             st.success(f"Updated today's snapshot ({len(written)} holdings)")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -775,7 +775,7 @@ def main():
                 'Download snapshots CSV', 
                 data=open(HIST_CSV, 'rb').read(), 
                 file_name='historical.csv',
-                use_container_width=True,
+                width='stretch',
                 help='Export all historical snapshots'
             )
             st.markdown('</div>', unsafe_allow_html=True)
