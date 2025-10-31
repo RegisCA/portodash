@@ -310,6 +310,14 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
             fig.update_layout(
                 hovermode='x unified',
                 yaxis_tickformat='$,.0f',
+                legend=dict(
+                    orientation='h',
+                    yanchor='top',
+                    y=-0.15,
+                    xanchor='center',
+                    x=0.5,
+                    font=dict(size=13)
+                ),
                 font=dict(family='system-ui, -apple-system, sans-serif', color='#1A1A1A'),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
@@ -323,8 +331,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                     gridcolor='#E8EBED',
                     gridwidth=1
                 ),
-                margin=dict(l=20, r=20, t=20, b=40),
-                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=80),
                 hoverlabel=dict(
                     bgcolor='white',
                     font_size=13,
