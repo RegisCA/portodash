@@ -5,6 +5,49 @@ All notable changes to PortoDash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-31
+
+### Added
+
+- **Responsive Widescreen Layout** (PR #54)
+  - Reorganized content with better information hierarchy for widescreen displays
+  - Portfolio Insights moved above charts to be immediately visible without scrolling
+  - Key metrics (Positions, Top Holding, FX Exposure, Average Gain) now on first page
+  - Dynamic table heights that adapt to content (200-600px range)
+  - Context-aware section headers that change based on filter state
+
+### Changed
+
+- **Information Hierarchy Redesign** (PR #54)
+  - New order: Portfolio Overview → Portfolio Insights → Allocation → Performance → Holdings → Data Management
+  - Allocation chart and Performance chart moved above Holdings tables
+  - Creates logical narrative: high-level values → key insights → visual story → detailed tables
+  - Addresses UX issue where critical insights were buried below large tables
+
+- **Context-Aware Headers** (PR #54)
+  - Headers adapt based on filter state to reflect current view
+  - No filters: "Portfolio Overview" and "Portfolio Insights"
+  - Filters active: "Overview" and "Insights" (drops "Portfolio" for accuracy)
+  - More precise labeling when viewing filtered subsets
+
+- **Dynamic Table Heights** (PR #54)
+  - All Holdings table height now calculated based on number of rows
+  - Formula: `rows × 35px + 42px header + 20px padding`
+  - Minimum 200px, maximum 600px with internal scrolling
+  - Eliminates wasted space when filtering to small subsets
+
+- **Reduced Vertical Whitespace** (PR #54)
+  - Removed horizontal rule before Portfolio Overview section
+  - Optimized spacing to fit more content above the fold
+  - Portfolio Insights cards now visible on first page with no scrolling
+
+### Fixed
+
+- **Context-Aware Headers Bug** (PR #54)
+  - Fixed headers always showing "Overview" even when no filters active
+  - Now correctly checks session state to determine filter status
+  - Compares selected item count vs total available items
+
 ## [1.1.0] - 2025-10-31
 
 ### Added
@@ -166,5 +209,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/RegisCA/portodash/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/RegisCA/portodash/compare/v1.0-mvp...v1.1.0
 [1.0.0]: https://github.com/RegisCA/portodash/releases/tag/v1.0-mvp
