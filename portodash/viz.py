@@ -2,13 +2,36 @@ import plotly.express as px
 import pandas as pd
 
 
-def make_allocation_pie(df):
-    """Return a Plotly pie chart for allocation with clean, modern styling."""
+def make_allocation_pie(df, fund_names_map=None):
+    """Return a Plotly pie chart for allocation with clean, modern styling.
+    
+    Args:
+        df: DataFrame with ticker and current_value columns
+        fund_names_map: Optional dict mapping tickers to long names
+    """
     if df.empty:
         return px.pie(values=[], names=[], title="Allocation")
 
     # remove TOTAL row if present
-    d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df
+    d = df[df['ticker'] != 'TOTAL'] if 'ticker' in df.columns else df.copy()
+    
+    # Calculate percentages for label threshold
+    total_value = d['current_value'].sum()
+    d['percentage'] = (d['current_value'] / total_value * 100)
+    
+    # Add display labels with fund names (for hover and legend)
+    if fund_names_map:
+        d['display_label'] = d['ticker'].apply(
+            lambda t: f"{t} — {fund_names_map[t]}" if t in fund_names_map and fund_names_map[t] != t else t
+        )
+    else:
+        d['display_label'] = d['ticker']
+    
+    # Create callout text: show ticker + % only if >= 5%, otherwise empty
+    d['callout_text'] = d.apply(
+        lambda row: f"{row['ticker']}<br>{row['percentage']:.1f}%" if row['percentage'] >= 5 else '',
+        axis=1
+    )
     
     # Clean color palette - Wealthsimple inspired
     colors = ['#00D46A', '#2E86AB', '#A23B72', '#F18F01', '#C73E1D', 
@@ -16,18 +39,20 @@ def make_allocation_pie(df):
     
     fig = px.pie(
         d, 
-        names='ticker', 
-        values='current_value', 
+        names='display_label', 
+        values='current_value',
         hole=0.4,
         color_discrete_sequence=colors
     )
     
     fig.update_traces(
         textposition='outside',
-        textinfo='label+percent',
+        text=d['callout_text'].tolist(),
+        textinfo='text',
         textfont_size=13,
         textfont_family='system-ui, -apple-system, sans-serif',
-        marker=dict(line=dict(color='#FFFFFF', width=2))
+        marker=dict(line=dict(color='#FFFFFF', width=2)),
+        hovertemplate='<b>%{label}</b><br>Value: %{value:$,.0f} CAD<br>Share: %{percent}<extra></extra>'
     )
     
     fig.update_layout(
@@ -80,7 +105,7 @@ def make_30d_performance_chart(hist_prices, holdings_list):
     return fig
 
 
-def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
+def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers=None):
     """Create a performance chart from historical.csv snapshots with FX impact analysis.
     
     Shows two lines:
@@ -91,6 +116,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         csv_path: Path to historical.csv file
         days: Number of days to show (default 30)
         fx_csv_path: Path to fx_rates.csv file (optional)
+        tickers: List of tickers to include (optional, for filtering by account/holder/type)
     
     Returns:
         Plotly figure showing portfolio value over time from snapshots
@@ -107,6 +133,13 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         
         if df.empty:
             return px.line(title='Performance (no snapshot data)')
+        
+        # Filter by tickers if provided (for account/holder/type filtering)
+        if tickers is not None:
+            df = df[df['ticker'].isin(tickers)]
+            
+            if df.empty:
+                return px.line(title='Performance (no data for selected filters)')
         
         # Parse dates - handle ISO8601 format
         df['date'] = pd.to_datetime(df['date'], format='ISO8601')
@@ -172,6 +205,9 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
         # Get the first FX rate (for fixed FX calculation)
         first_fx_rate = fx_rate_by_date.get(unique_dates[0]) if fx_rate_by_date else None
         
+        # Check if there are any USD holdings (for FX labeling)
+        has_usd_holdings = any(not ticker.endswith('.TO') for ticker in df['ticker'].unique())
+        
         # Calculate portfolio values with and without FX impact
         portfolio_values_fixed_fx = []
         portfolio_values_actual_fx = []
@@ -224,25 +260,27 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
             'Actual Performance (with FX)': portfolio_values_actual_fx
         }).sort_values('date')
         
-        # Create the chart with two lines
-        if fx_rate_by_date and first_fx_rate:
-            # Show both lines if we have FX data
+        # Create the chart - show two lines only if we have FX data AND USD holdings
+        if fx_rate_by_date and first_fx_rate and has_usd_holdings:
+            # Show both lines if we have FX data and multi-currency portfolio
             fig = px.line(
                 plot_df,
                 x='date',
                 y=['Market Performance (Fixed FX)', 'Actual Performance (with FX)'],
-                labels={'value': 'Portfolio Value (CAD)', 'date': 'Date', 'variable': 'Series'}
+                labels={'value': 'Portfolio Value (CAD)', 'date': '', 'variable': 'Series'}
             )
             
             # Customize line styles - cleaner, more modern
             fig.data[0].line.color = '#6B7280'  # Gray for fixed FX baseline
             fig.data[0].line.width = 2
             fig.data[0].line.dash = 'dot'
-            fig.data[0].name = '📊 Market (Fixed FX)'
+            fig.data[0].name = 'Market (Fixed FX)'
+            fig.data[0].hovertemplate = '%{y:$,.0f}<extra></extra>'
             
             fig.data[1].line.color = '#00D46A'  # Mint green for actual (Wealthsimple signature)
             fig.data[1].line.width = 3
-            fig.data[1].name = '💰 Actual (with FX)'
+            fig.data[1].name = 'Actual (with FX)'
+            fig.data[1].hovertemplate = '%{y:$,.0f}<extra></extra>'
             
             fig.update_layout(
                 hovermode='x unified',
@@ -261,7 +299,8 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='#E8EBED',
-                    gridwidth=1
+                    gridwidth=1,
+                    title=''
                 ),
                 yaxis=dict(
                     showgrid=True,
@@ -275,48 +314,68 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None):
                     font_family='system-ui, -apple-system, sans-serif'
                 )
             )
+            
+            # Update x-axis to show formatted date in hover
+            fig.update_xaxes(hoverformat='%b %-d, %Y')
         else:
-            # No FX data - show single line using portfolio_value from CSV
-            daily_values = df.groupby('date')['portfolio_value'].first().reset_index()
-            daily_values = daily_values.sort_values('date')
+            # Single currency or no FX data - show single line
+            # Use the actual values (they'll be the same as fixed if single currency)
+            single_line_df = pd.DataFrame({
+                'date': dates,
+                'portfolio_value': portfolio_values_actual_fx
+            }).sort_values('date')
             
             fig = px.line(
-                daily_values,
+                single_line_df,
                 x='date',
                 y='portfolio_value',
-                labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': 'Date'}
+                labels={'portfolio_value': 'Portfolio Value (CAD)', 'date': ''}
             )
             
             fig.update_traces(
                 line_color='#00D46A',
                 line_width=3,
-                name='Portfolio Value'
+                name='Portfolio Value',
+                showlegend=True,
+                hovertemplate='%{y:$,.0f}<extra></extra>'
             )
             
             fig.update_layout(
                 hovermode='x unified',
                 yaxis_tickformat='$,.0f',
+                showlegend=True,
+                legend=dict(
+                    orientation='h',
+                    yanchor='top',
+                    y=-0.15,
+                    xanchor='center',
+                    x=0.5,
+                    font=dict(size=13)
+                ),
                 font=dict(family='system-ui, -apple-system, sans-serif', color='#1A1A1A'),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 xaxis=dict(
                     showgrid=True,
                     gridcolor='#E8EBED',
-                    gridwidth=1
+                    gridwidth=1,
+                    title=''
                 ),
                 yaxis=dict(
                     showgrid=True,
                     gridcolor='#E8EBED',
                     gridwidth=1
                 ),
-                margin=dict(l=20, r=20, t=20, b=40),
-                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=80),
                 hoverlabel=dict(
                     bgcolor='white',
                     font_size=13,
                     font_family='system-ui, -apple-system, sans-serif'
                 )
             )
+            
+            # Update x-axis to show formatted date in hover
+            fig.update_xaxes(hoverformat='%b %-d, %Y')
         
         return fig
     

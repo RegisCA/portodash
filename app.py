@@ -641,7 +641,12 @@ def main():
     # Allocation chart
     st.markdown("---")
     st.markdown(render_section_header('Allocation'), unsafe_allow_html=True)
-    pie = make_allocation_pie(df)
+    
+    # Get fund names for pie chart labels
+    pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
+    pie_fund_names = get_fund_names(pie_tickers)
+    
+    pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
     st.plotly_chart(pie, use_container_width=True)
 
     # Performance chart from snapshots
@@ -650,7 +655,7 @@ def main():
     
     # Use snapshot-based chart (from historical.csv)
     if os.path.exists(HIST_CSV):
-        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
+        perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
         st.plotly_chart(perf_fig, use_container_width=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
