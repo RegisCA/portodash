@@ -14,15 +14,18 @@ from portodash.data_fetch import get_current_prices, fetch_and_store_snapshot
 from portodash.calculations import compute_portfolio_df
 from portodash.fx import get_fx_rates
 from portodash.viz import make_allocation_pie, make_30d_performance_chart, make_snapshot_performance_chart
+from portodash.fund_names import get_fund_names, format_ticker_with_name
 from portodash.theme import (
     get_section_label,
     inject_modern_fintech_css,
     inject_typography_css,
+    render_metric_grid,
     render_page_title,
     render_section_header,
     render_sidebar_subtitle,
     render_sidebar_title,
     render_subsection_header,
+    render_metric_card,
 )
 
 
@@ -83,7 +86,7 @@ def main():
     inject_typography_css()
 
     st.markdown(render_page_title('PortoDash'), unsafe_allow_html=True)
-    st.caption('Multi-currency portfolio tracker with FX impact analysis')
+    st.caption('Real-time multi-currency overview with transparent FX attribution.')
 
     # Initialize session state for price caching and rate limiting
     if 'prices_cache' not in st.session_state:
@@ -105,7 +108,7 @@ def main():
     try:
         cfg = load_portfolio(PORTFOLIO_PATH)
     except Exception as e:
-        st.error(f'Failed to load portfolio.json: {e}')
+        st.error(f'Could not load the portfolio configuration: {e}')
         return
 
     holdings = cfg.get('holdings', [])
@@ -140,28 +143,53 @@ def main():
         nickname = account['nickname']
         account_display_map[nickname] = f"{account['type']} - {account['holder']}"
     
+    # Initialize session state for filter selections (using widget keys directly)
+    if 'filter_nicknames' not in st.session_state:
+        st.session_state.filter_nicknames = all_nicknames
+    if 'filter_holders' not in st.session_state:
+        st.session_state.filter_holders = all_holders
+    if 'filter_types' not in st.session_state:
+        st.session_state.filter_types = all_types
+    
     with st.sidebar:
-        selected_nicknames = st.multiselect(
-            get_section_label("account"),
-            options=all_nicknames,
-            default=all_nicknames,
-            format_func=lambda x: f"{x} ({account_display_map[x]})",
-            help='Filter by specific account names',
-        )
+        # Reset all filters button at the top for visibility
+        if st.button('Reset All Filters', use_container_width=True, key='reset_filters_btn'):
+            # Update session state to all options
+            st.session_state.filter_nicknames = all_nicknames
+            st.session_state.filter_holders = all_holders
+            st.session_state.filter_types = all_types
+            st.rerun()
+        
+        # Account filter with count badge
+        with st.expander(f"**Accounts** ({len(all_nicknames)})", expanded=True):
+            selected_nicknames = st.multiselect(
+                "Select accounts",
+                options=all_nicknames,
+                format_func=lambda x: f"{x} — {account_display_map[x]}",
+                help='Filter by specific account names',
+                key='filter_nicknames',
+                label_visibility='collapsed',
+            )
 
-        selected_holders = st.multiselect(
-            get_section_label("holder"),
-            options=all_holders,
-            default=all_holders,
-            help='Filter by account holder',
-        )
+        # Holder filter with count badge
+        with st.expander(f"**Holders** ({len(all_holders)})", expanded=False):
+            selected_holders = st.multiselect(
+                "Select holders",
+                options=all_holders,
+                help='Filter by account holder',
+                key='filter_holders',
+                label_visibility='collapsed',
+            )
 
-        selected_types = st.multiselect(
-            get_section_label("type"),
-            options=all_types,
-            default=all_types,
-            help='Filter by account type (TFSA, RRSP, etc.)',
-        )
+        # Type filter with count badge
+        with st.expander(f"**Account Types** ({len(all_types)})", expanded=False):
+            selected_types = st.multiselect(
+                "Select types",
+                options=all_types,
+                help='Filter by account type (TFSA, RRSP, etc.)',
+                key='filter_types',
+                label_visibility='collapsed',
+            )
     
     # Rate limiting: cooldown period in seconds
     COOLDOWN_SECONDS = 60
@@ -171,47 +199,24 @@ def main():
     
     # Check if we're in cooldown period or rate limited
     can_refresh = True
-    cooldown_remaining = 0
-    button_label = 'Refresh prices'
     
     # Check if we're still in extended rate limit period
     if st.session_state.rate_limited_until:
         if now < st.session_state.rate_limited_until:
             can_refresh = False
-            remaining_secs = int((st.session_state.rate_limited_until - now).total_seconds())
-            remaining_mins = remaining_secs // 60
-            button_label = f'Rate limited (wait {remaining_mins}m)'
         else:
             # Rate limit period expired
             st.session_state.rate_limited_until = None
             st.session_state.last_error = None
     
     # Check normal cooldown - only enforce if a fetch actually happened
-    # (not just because time passed since last fetch during unrelated reruns)
     if can_refresh and st.session_state.last_fetch_time and st.session_state.fetch_in_progress:
         elapsed = (now - st.session_state.last_fetch_time).total_seconds()
         if elapsed < COOLDOWN_SECONDS:
             can_refresh = False
-            cooldown_remaining = int(COOLDOWN_SECONDS - elapsed)
-            button_label = f'Refresh prices (wait {cooldown_remaining}s)'
         else:
             # Cooldown period expired, clear the flag
             st.session_state.fetch_in_progress = False
-    
-    # Refresh button with appropriate state
-    with st.sidebar:
-        if can_refresh:
-            refresh = st.button('Refresh prices', use_container_width=True, type='primary')
-        else:
-            st.button(button_label, disabled=True, use_container_width=True)
-            refresh = False
-        
-        # Show rate limit warning if we have one
-        if st.session_state.last_error:
-            st.warning(st.session_state.last_error)
-
-        st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
-        st.markdown(render_sidebar_title(get_section_label("refresh")), unsafe_allow_html=True)
     
     # Get ALL tickers before filtering (needed for price fetching)
     all_tickers = list(set(h['ticker'] for h in holdings))
@@ -234,10 +239,9 @@ def main():
         if len(tickers) <= 10:
             st.caption(f"_{', '.join(tickers)}_")
 
-    # Fetch current prices ONLY on explicit refresh or first load with no cache
-    # This prevents refetches when filters change
-    # However, if we're rate-limited, skip the fetch attempt and go straight to cache
-    should_fetch = (refresh or not st.session_state.prices_cache)
+    # Fetch current prices ONLY on first load with no cache
+    # Manual refresh happens later in Data Management section
+    should_fetch = not st.session_state.prices_cache
     
     # If rate-limited, bypass live fetch and use cache immediately
     if should_fetch and st.session_state.rate_limited_until and now < st.session_state.rate_limited_until:
@@ -246,7 +250,7 @@ def main():
         if not st.session_state.prices_cache:
             # No session cache, try loading from CSV
             with st.sidebar:
-                st.text('Loading cached prices (rate limited)...')
+                st.info('Loading cached prices while the Yahoo Finance limit clears...')
             try:
                 from portodash.data_fetch import get_cached_prices
                 cached_prices, _ = get_cached_prices(all_tickers, csv_path=HIST_CSV)
@@ -260,52 +264,52 @@ def main():
                 st.sidebar.error(f"Could not load cached prices: {e}")
     
     if should_fetch:
-        status_placeholder = st.sidebar.empty()
-        status_placeholder.info('Fetching latest prices...')
-        
-        # Mark that a fetch is in progress for cooldown tracking
-        st.session_state.fetch_in_progress = True
-        
-        try:
-            prices, fetched_at_iso, price_source = get_current_prices(all_tickers, csv_path=HIST_CSV)
-            # Update session state on success
-            st.session_state.prices_cache = prices
-            st.session_state.fetched_at_iso = fetched_at_iso
-            st.session_state.price_source = price_source
-            st.session_state.last_fetch_time = now
-            # Clear any previous errors
-            st.session_state.last_error = None
-            st.session_state.rate_limited_until = None
-            
-            # Clear the fetching message
-            status_placeholder.empty()
-            
-        except Exception as e:
-            # Clear the fetching message on error too
-            status_placeholder.empty()
-            
-            # Check if it's a rate limit error
-            error_msg = str(e)
-            if 'YFRateLimitError' in error_msg or 'Rate limited' in error_msg or 'Too Many Requests' in error_msg:
-                # Set extended cooldown for rate limit
-                st.session_state.rate_limited_until = now + timedelta(seconds=RATE_LIMIT_EXTENDED_COOLDOWN)
-                st.session_state.last_error = "Yahoo Finance rate limit reached. Using cached data. Will retry in ~1 hour."
-                st.sidebar.error("Rate limit reached. Using cached prices.")
-            else:
-                # Other error - show it but don't extend cooldown as much
-                st.session_state.last_error = f"Error fetching prices: {error_msg}"
-                st.sidebar.error(st.session_state.last_error)
-            
-            # Fall back to cached data if available
-            if st.session_state.prices_cache:
-                prices = st.session_state.prices_cache
-                fetched_at_iso = st.session_state.fetched_at_iso
-                price_source = 'cache (error fallback)'
-            else:
-                # No cache available - create empty prices
-                prices = {t: None for t in all_tickers}
-                fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
-                price_source = 'unavailable'
+        # Show loading state in sidebar
+        with st.sidebar:
+            with st.spinner('Fetching latest prices...'):
+                # Mark that a fetch is in progress for cooldown tracking
+                st.session_state.fetch_in_progress = True
+                
+                try:
+                    prices, fetched_at_iso, price_source = get_current_prices(all_tickers, csv_path=HIST_CSV)
+                    # Update session state on success
+                    st.session_state.prices_cache = prices
+                    st.session_state.fetched_at_iso = fetched_at_iso
+                    st.session_state.price_source = price_source
+                    st.session_state.last_fetch_time = now
+                    # Clear any previous errors
+                    st.session_state.last_error = None
+                    st.session_state.rate_limited_until = None
+                    
+                    # Force rerun to show updated state
+                    st.rerun()
+                    
+                except Exception as e:
+                    # Check if it's a rate limit error
+                    error_msg = str(e)
+                    if 'YFRateLimitError' in error_msg or 'Rate limited' in error_msg or 'Too Many Requests' in error_msg:
+                        # Set extended cooldown for rate limit
+                        st.session_state.rate_limited_until = now + timedelta(seconds=RATE_LIMIT_EXTENDED_COOLDOWN)
+                        st.session_state.last_error = (
+                            "Rate limit reached. Using cached prices. Retry available in 1 hour."
+                        )
+                    else:
+                        # Other error - show it but don't extend cooldown as much
+                        st.session_state.last_error = f"Fetch failed: {error_msg}"
+                    
+                    # Fall back to cached data if available
+                    if st.session_state.prices_cache:
+                        prices = st.session_state.prices_cache
+                        fetched_at_iso = st.session_state.fetched_at_iso
+                        price_source = 'cache (error fallback)'
+                    else:
+                        # No cache available - create empty prices
+                        prices = {t: None for t in all_tickers}
+                        fetched_at_iso = datetime.utcnow().replace(tzinfo=pytz.UTC).isoformat()
+                        price_source = 'unavailable'
+                    
+                    # Force rerun to show error state
+                    st.rerun()
     else:
         # Use cached prices
         prices = st.session_state.prices_cache
@@ -361,7 +365,7 @@ def main():
                 mtime = datetime.fromtimestamp(os.path.getmtime(log_path), tz)
                 if (datetime.now(tz) - mtime).total_seconds() < 24 * 3600:
                     return True, 'log'
-                return True, 'log'
+                return False, 'log'
         except Exception:
             pass
 
@@ -377,24 +381,24 @@ def main():
                     status_json = json.load(fh)
                 # show running state or next run
                 if status_json.get('job_running'):
-                    st.success('Scheduler running (job active)')
+                    st.success('Scheduler process running')
                     shown = True
                 elif status_json.get('next_run'):
                     try:
                         nr = datetime.fromisoformat(status_json.get('next_run'))
                         nr_local = nr.astimezone(tz)
-                        # Check if next_run is in the past (stale status file)
                         if nr_local < datetime.now(tz):
-                            # Status file is stale - scheduler probably not running
-                            st.warning(f"Scheduler status outdated (last update: {nr_local.strftime('%Y-%m-%d %H:%M')}). Scheduler may not be running.")
+                            st.warning(
+                                f"Scheduler status is older than expected (last update {nr_local.strftime('%Y-%m-%d %H:%M')}). Verify the scheduler is running."
+                            )
                         else:
-                            st.info(f"Next scheduled update: {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                            st.info(f"Next scheduled update {nr_local.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                         shown = True
                     except Exception:
-                        st.info('Next scheduled update available')
+                        st.info('Next scheduled update pending confirmation')
                         shown = True
                 elif status_json.get('last_error'):
-                    st.error(f"Last scheduler error: {status_json.get('last_error')}")
+                    st.error(f"Most recent scheduler error: {status_json.get('last_error')}")
                     shown = True
             except Exception:
                 # ignore corrupted status file and fall back
@@ -405,11 +409,11 @@ def main():
             running, method = _detect_scheduler_running()
             if running:
                 if method == 'process':
-                    st.success('Scheduler process detected')
+                    st.success('Scheduler process detected via system check')
                 else:
-                    st.success('Scheduler log found (scheduler probably running)')
+                    st.success('Scheduler log recently updated (scheduler healthy)')
             else:
-                st.warning("Scheduler not running — start it with: python scripts/run_scheduler.py")
+                st.warning("Scheduler not detected. Run `python scripts/run_scheduler.py` to resume automated updates.")
 
     # compute portfolio data; collect currencies per holding (optional field `currency`)
     currencies = {h.get('currency', 'CAD').upper() for h in holdings}
@@ -420,39 +424,57 @@ def main():
 
     # Check if we have any data to display
     if df.empty or len(holdings) == 0:
-        st.warning("No holdings to display with current filter selections. Please adjust your filters.")
+        st.warning("No holdings match the current filters. Adjust your selections to view positions.")
         return
 
     # Summary KPIs - all values in CAD
     st.markdown("---")
     st.markdown(render_section_header('Portfolio Overview'), unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns(3)
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
     total_cost = df.loc[df['ticker'] == 'TOTAL', 'cost_total'].squeeze() if 'TOTAL' in df['ticker'].values else df['cost_total'].sum()
     total_gain = df.loc[df['ticker'] == 'TOTAL', 'gain'].squeeze() if 'TOTAL' in df['ticker'].values else df['gain'].sum()
     
     gain_pct = (total_gain / total_cost * 100) if total_cost != 0 else 0
 
-    col1.metric('Portfolio Value', f"${total_value:,.0f}", help='Total value in CAD')
-    col2.metric('Total Cost', f"${total_cost:,.0f}", help='Total cost basis in CAD')
-    col3.metric('Total Gain', f"${total_gain:,.0f}", delta=f"{gain_pct:.1f}%", help='Unrealized gain/loss in CAD')
+    metrics_html = render_metric_grid(
+        render_metric_card('Portfolio Value', total_value, help_text='Total value in CAD'),
+        render_metric_card('Total Cost', total_cost, help_text='Total cost basis in CAD'),
+        render_metric_card(
+            'Total Gain',
+            total_gain,
+            delta=gain_pct,
+            delta_is_percent=True,
+            delta_precision=1,
+            help_text='Unrealized gain/loss in CAD',
+            delta_label='vs cost',
+        ),
+    )
+    st.markdown(metrics_html, unsafe_allow_html=True)
     
     # Show FX rates and calculation methodology if multi-currency
     if fx_rates:
         with st.expander("Multi-Currency Details", expanded=False):
-            st.markdown("""
-            All values displayed in **CAD** (Canadian Dollar)
-            
-            **Exchange Rates:**
-            """)
+            st.markdown(render_subsection_header('Exchange Rates'), unsafe_allow_html=True)
+            st.markdown(
+                "**Reporting currency:** CAD (Canadian Dollar)\n\n**Current exchange rates:**"
+            )
             for curr, rate in sorted(fx_rates.items()):
                 st.markdown(f"- 1 {curr} = **{rate:.4f}** CAD")
-            st.caption("_Exchange rates cached for 12 hours from open.er-api.com_")
+            st.caption('Exchange rates cache for up to 12 hours (open.er-api.com).')
 
     st.markdown("---")
     st.markdown(render_section_header('Holdings'), unsafe_allow_html=True)
     
+    def color_gain_pct(val):
+        if pd.isna(val) or val is None:
+            return ''
+        if val > 0:
+            return 'background-color: rgba(16, 185, 129, 0.12); color: #047857; font-weight: 600;'
+        if val < 0:
+            return 'background-color: rgba(239, 68, 68, 0.12); color: #B91C1C; font-weight: 600;'
+        return 'color: var(--pd-neutral);'
+
     # Show account breakdown if viewing multiple accounts (based on filtered results)
     # Count unique account nicknames in the filtered holdings
     unique_accounts = set(h.get('account_nickname') for h in holdings if h.get('account_nickname'))
@@ -466,21 +488,17 @@ def main():
         }).reset_index()
         accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
         accounts_df = accounts_df.sort_values('current_value', ascending=False)
-        
-        # Apply color formatting for gain_pct
-        def color_gain_pct(val):
-            if pd.isna(val) or val is None:
-                return ''
-            color = '#90ee90' if val > 0 else '#ffcccb' if val < 0 else ''
-            return f'background-color: {color}'
-        
+
         st.dataframe(
-            accounts_df.style.format({
+            accounts_df.style
+            .format({
                 'current_value': '${:,.2f}',
                 'cost_total': '${:,.2f}',
                 'gain': '${:,.2f}',
                 'gain_pct': '{:.2%}'
-            }).map(color_gain_pct, subset=['gain_pct']),
+            })
+            .map(color_gain_pct, subset=['gain_pct'])
+            .set_table_attributes("class='data-table'"),
             width='stretch',
             column_config={
                 'account': st.column_config.TextColumn('Account', width='medium'),
@@ -493,20 +511,26 @@ def main():
         
     st.markdown(render_subsection_header('All Holdings'), unsafe_allow_html=True)
     
-    # Apply color formatting for gain_pct
-    def color_gain_pct(val):
-        if pd.isna(val) or val is None:
-            return ''
-        color = '#90ee90' if val > 0 else '#ffcccb' if val < 0 else ''
-        return f'background-color: {color}'
-    
-    # Split dataframe into holdings and total row
+    # Split dataframe into holdings and remove the aggregate TOTAL row
     df_holdings = df[df['ticker'] != 'TOTAL'].copy()
-    df_total = df[df['ticker'] == 'TOTAL'].copy()
+    
+    # Fetch fund names for all tickers
+    tickers_in_table = df_holdings['ticker'].unique().tolist()
+    fund_names_map = get_fund_names(tickers_in_table)
+    
+    # Add fund/ETF name column
+    df_holdings['fund_name'] = df_holdings['ticker'].map(
+        lambda t: format_ticker_with_name(t, fund_names_map.get(t, t))
+    )
+    
+    # Reorder columns to put fund_name first
+    cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
+    df_holdings = df_holdings[cols]
     
     # Display holdings table (sortable)
     st.dataframe(
-        df_holdings.style.format({
+        df_holdings.style
+        .format({
             'shares': '{:,.4f}',
             'cost_basis': '{:,.4f}',
             'price': '${:,.4f}',
@@ -515,51 +539,104 @@ def main():
             'gain': '${:,.2f}',
             'allocation_pct': '{:.2%}',
             'gain_pct': '{:.2%}'
-        }).map(color_gain_pct, subset=['gain_pct']),
+        })
+        .map(color_gain_pct, subset=['gain_pct'])
+        .set_table_attributes("class='data-table'"),
         width='stretch',
         column_config={
+            'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
             'ticker': st.column_config.TextColumn('Ticker', width='small'),
             'currency': st.column_config.TextColumn('Currency', width='small'),
             'shares': st.column_config.NumberColumn('Shares', width='small'),
             'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
             'price': st.column_config.NumberColumn('Price', width='small'),
-            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
-            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
-            'gain': st.column_config.NumberColumn('Gain', width='medium'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='small'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
+            'gain': st.column_config.NumberColumn('Gain', width='small'),
             'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
             'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
         },
     )
     
-    # Display total row separately (not sortable)
-    st.dataframe(
-        df_total.style.format({
-            'shares': '{:,.4f}',
-            'cost_basis': '{:,.4f}',
-            'price': '${:,.4f}',
-            'current_value': '${:,.2f}',
-            'cost_total': '${:,.2f}',
-            'gain': '${:,.2f}',
-            'allocation_pct': '{:.2%}',
-            'gain_pct': '{:.2%}'
-        }),
-        width='stretch',
-        column_config={
-            'account': st.column_config.TextColumn('Account', width='medium'),
-            'ticker': st.column_config.TextColumn('Ticker', width='small'),
-            'currency': st.column_config.TextColumn('Currency', width='small'),
-            'shares': st.column_config.NumberColumn('Shares', width='small'),
-            'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
-            'price': st.column_config.NumberColumn('Price', width='small'),
-            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
-            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
-            'gain': st.column_config.NumberColumn('Gain', width='medium'),
-            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
-        },
-        hide_index=True,
-    )
+    if not df_holdings.empty:
+        positions_count = len(df_holdings)
+        positive_positions = int((df_holdings['gain'] > 0).sum())
+        positive_ratio = (positive_positions / positions_count * 100) if positions_count else 0
+
+        currency_series = df_holdings['currency'].fillna('CAD').str.upper()
+        portfolio_value = float(df_holdings['current_value'].sum())
+        foreign_mask = currency_series != 'CAD'
+        foreign_value = float(df_holdings.loc[foreign_mask, 'current_value'].sum()) if portfolio_value else 0
+        fx_exposure_pct = (foreign_value / portfolio_value * 100) if portfolio_value else 0
+
+        top_fx_label = None
+        top_fx_pct = 0.0
+        if foreign_mask.any() and portfolio_value:
+            foreign_df = df_holdings.loc[foreign_mask].copy()
+            foreign_df['currency_upper'] = currency_series[foreign_mask]
+            fx_by_currency = foreign_df.groupby('currency_upper')['current_value'].sum().sort_values(ascending=False)
+            if not fx_by_currency.empty:
+                top_fx_label = fx_by_currency.index[0]
+                top_fx_pct = fx_by_currency.iloc[0] / portfolio_value * 100
+
+        top_holding = None
+        if 'allocation_pct' in df_holdings.columns and not df_holdings['allocation_pct'].isna().all():
+            top_holding = df_holdings.loc[df_holdings['allocation_pct'].idxmax()]
+
+        avg_gain_pct = float(df_holdings['gain_pct'].mean()) * 100 if 'gain_pct' in df_holdings.columns else 0
+
+        summary_cards = [
+            render_metric_card(
+                'Positions',
+                positions_count,
+                value_is_currency=False,
+                help_text='Holdings visible after filters',
+                delta=positive_ratio,
+                delta_is_percent=True,
+                delta_precision=1,
+                delta_label='showing gains',
+            )
+        ]
+
+        if top_holding is not None:
+            summary_cards.append(
+                render_metric_card(
+                    'Top Holding',
+                    str(top_holding.get('ticker', '–')),
+                    value_is_currency=False,
+                    delta=float(top_holding.get('allocation_pct', 0) * 100),
+                    delta_is_percent=True,
+                    delta_precision=1,
+                    delta_label='of portfolio',
+                    help_text=f"{top_holding.get('account', 'Account')} • {top_holding.get('currency', 'CAD')}",
+                )
+            )
+
+        fx_help = 'All holdings in CAD'
+        if fx_exposure_pct > 0:
+            fx_detail = f"{top_fx_label} exposure {top_fx_pct:.1f}%" if top_fx_label else 'Diversified foreign currencies'
+            fx_help = f"{fx_detail}"
+
+        summary_cards.append(
+            render_metric_card(
+                'FX Exposure',
+                f"{fx_exposure_pct:.1f}%",
+                value_is_currency=False,
+                help_text=f"Share of value in non-CAD currencies ({fx_help})",
+            )
+        )
+
+        summary_cards.append(
+            render_metric_card(
+                'Average Gain',
+                f"{avg_gain_pct:.1f}%",
+                value_is_currency=False,
+                help_text='Mean unrealized return across positions',
+            )
+        )
+
+        st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
 
     # Allocation chart
     st.markdown("---")
@@ -576,20 +653,61 @@ def main():
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV)
         st.plotly_chart(perf_fig, use_container_width=True)
     else:
-        st.info('No historical snapshots yet. Save snapshots to see performance over time.')
+        st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
 
-    # Snapshot storage
+    # Data Management
     st.markdown("---")
     st.markdown(render_section_header('Data Management'), unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
+        # Manual refresh button
+        refresh_disabled = not can_refresh
+        refresh_help = 'Fetch latest prices from Yahoo Finance'
+        
+        if st.session_state.rate_limited_until and now < st.session_state.rate_limited_until:
+            remaining_mins = int((st.session_state.rate_limited_until - now).total_seconds()) // 60
+            refresh_help = f'Rate limited - retry in {remaining_mins} minutes'
+        elif not can_refresh:
+            refresh_help = 'Cooldown active - wait before retrying'
+        
+        if st.button('Refresh prices', disabled=refresh_disabled, use_container_width=True, help=refresh_help):
+            # Trigger a manual refresh
+            with st.spinner('Fetching latest prices...'):
+                st.session_state.fetch_in_progress = True
+                
+                try:
+                    prices, fetched_at_iso, price_source = get_current_prices(all_tickers, csv_path=HIST_CSV)
+                    st.session_state.prices_cache = prices
+                    st.session_state.fetched_at_iso = fetched_at_iso
+                    st.session_state.price_source = price_source
+                    st.session_state.last_fetch_time = now
+                    st.session_state.last_error = None
+                    st.session_state.rate_limited_until = None
+                    st.success('Prices updated successfully')
+                    st.rerun()
+                except Exception as e:
+                    error_msg = str(e)
+                    if 'YFRateLimitError' in error_msg or 'Rate limited' in error_msg or 'Too Many Requests' in error_msg:
+                        st.session_state.rate_limited_until = now + timedelta(seconds=RATE_LIMIT_EXTENDED_COOLDOWN)
+                        st.session_state.last_error = "Rate limit reached"
+                        st.error(f'Rate limited - retry available in 1 hour')
+                    else:
+                        st.session_state.last_error = error_msg
+                        st.error(f'Fetch failed: {error_msg}')
+                    st.rerun()
+        
+        # Show error message if present
+        if st.session_state.last_error:
+            st.caption(f"⚠️ {st.session_state.last_error}")
+    
+    with col2:
         if st.button('Update daily snapshot', use_container_width=True, help='Save current prices to historical.csv'):
             written = fetch_and_store_snapshot(holdings, prices, HIST_CSV, fetched_at_iso=fetched_at_iso)
             st.success(f"Updated today's snapshot ({len(written)} holdings)")
     
-    with col2:
+    with col3:
         # Export historical CSV
         if os.path.exists(HIST_CSV):
             st.download_button(
@@ -600,7 +718,7 @@ def main():
                 help='Export all historical snapshots'
             )
         else:
-            st.info('No historical data yet. Click "Update daily snapshot" to begin tracking.')
+            st.info('Historical dataset not started. Select "Update daily snapshot" to begin tracking performance.')
 
 
 if __name__ == '__main__':

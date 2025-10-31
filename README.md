@@ -28,7 +28,7 @@ Built for Canadian and cross‑border investors who want decision‑ready insigh
 ## Overview
 
 PortoDash shows native‑currency values alongside CAD totals so you instantly see what moved because of markets versus what moved because of FX.
-A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every number on screen.
+A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every number on screen, while a refreshed fintech‑inspired theme keeps the UI sharp across large KPI grids.
 
 ***
 
@@ -41,8 +41,12 @@ A clear Live/Cache/Mixed indicator with precise timestamps builds trust in every
 - Transparent data‑provenance indicator (Live, Cache, Mixed) and Last Updated timestamp for immediate data quality awareness.
 - Demo Mode with realistic sample data for safe exploration and screenshot‑friendly runs without exposing personal holdings.
 
-What’s new (recently merged)
+What's new (recently merged)
 
+- **Phase 2 UX Polish** (Issues #39-41): Context-aware refresh UI moved to Data Management section, collapsible sidebar filters with count badges and working reset button, enhanced holdings table with fund/ETF names via persistent cache.
+- PR \#41: Fintech‑style theme utilities (`render_metric_card`, `render_metric_grid`, typography helpers) for consistent headings, cards, and tables.
+- PR \#40: Holdings summary cards now highlight FX exposure, top positions, and average gains for quick context without scanning raw tables.
+- PR \#39: Portfolio copy and messaging tightened throughout the app to clarify refresh flows, scheduler health, and historical snapshot guidance.
 - PR \#33: Dual‑series performance chart that cleanly separates market returns from FX, enabling like‑for‑like interpretation of portfolio moves.
 - PR \#34: Demo Mode to explore the app with realistic sample data while preserving your real files via safe backups.
 - PR \#30: Portfolio UI and data model improvements that strengthen multi‑account filtering, holdings breakdowns, and provenance display.
@@ -54,8 +58,9 @@ What’s new (recently merged)
 - Resilient price retrieval with session‑state caching, local‑history fallback, and guarded refresh flows to keep the app responsive.
 - Practical rate limiting: 60‑second cooldown between refreshes and automatic 1‑hour backoff after a rate‑limit response to avoid thrashing.
 - Local snapshot pipeline that appends to `historical.csv` via a standalone scheduler, decoupling data collection from the UI.
-- Operational visibility through per‑run logs and `logs/scheduler_status.json`, which the UI reads to surface scheduler health.
+- Operational visibility through per‑run logs and `logs/scheduler_status.json`, which the UI reads to surface scheduler health with contextual copy.
 - Optional `psutil` integration to detect the scheduler process directly from the dashboard.
+- Theme utilities (`inject_modern_fintech_css`, typography hierarchy, metric card/grid helpers) deliver consistent layout and spacing without inline hacks.
 - macOS LaunchAgent example for running the scheduler at login in a stable, user‑space manner.
 
 ***
@@ -165,7 +170,7 @@ The header shows both Last Updated and a provenance label, so you always know wh
 - Live: all prices were fetched from yfinance during the last refresh.
 - Cache: data came from the latest local snapshot within the configured TTL.
 - Mixed: some tickers refreshed, others fell back to cache due to transient issues.
-If the price source is unavailable, the app displays data from `historical.csv` to maintain continuity.
+If the price source is unavailable, the app displays data from `historical.csv` to maintain continuity. The holdings summary now includes an FX exposure card, highlighting how much of the portfolio rides on non-CAD currencies at a glance.
 
 ***
 
