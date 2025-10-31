@@ -447,9 +447,13 @@ def main():
         st.warning("No holdings match the current filters. Adjust your selections to view positions.")
         return
 
+    # Determine if filters are active
+    filters_active = bool(selected_nicknames or selected_holders or selected_types)
+    
     # Summary KPIs - all values in CAD
-    st.markdown("---")
-    st.markdown(render_section_header('Portfolio Overview'), unsafe_allow_html=True)
+    # Use context-aware headers: "Portfolio" when viewing all, "Overview" when filtered
+    overview_header = 'Overview' if filters_active else 'Portfolio Overview'
+    st.markdown(render_section_header(overview_header), unsafe_allow_html=True)
     
     total_value = df.loc[df['ticker'] == 'TOTAL', 'current_value'].squeeze() if 'TOTAL' in df['ticker'].values else df['current_value'].sum()
     total_cost = df.loc[df['ticker'] == 'TOTAL', 'cost_total'].squeeze() if 'TOTAL' in df['ticker'].values else df['cost_total'].sum()
@@ -565,8 +569,9 @@ def main():
         )
 
         # Portfolio Insights - display metric cards
-        st.markdown("---")
-        st.markdown(render_section_header('Portfolio Insights'), unsafe_allow_html=True)
+        # Use context-aware header: just "Insights" to match other section headers
+        insights_header = 'Insights' if filters_active else 'Portfolio Insights'
+        st.markdown(render_section_header(insights_header), unsafe_allow_html=True)
         st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
 
     # Allocation chart
