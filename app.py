@@ -656,21 +656,26 @@ def main():
             )
         )
 
-        st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
-
-    # Allocation chart
+    # Allocation chart and portfolio metrics in two-column layout for widescreen
     st.markdown("---")
     st.markdown(render_section_header('Allocation'), unsafe_allow_html=True)
     
-    # Get fund names for pie chart labels
-    pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
-    pie_fund_names = get_fund_names(pie_tickers)
+    # Two-column layout: chart on left, metrics on right
+    col_chart, col_metrics = st.columns([0.45, 0.55])
     
-    # Semantic wrapper with ARIA label for screen readers
-    st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
-    pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-    st.plotly_chart(pie, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col_chart:
+        # Get fund names for pie chart labels
+        pie_tickers = df[df['ticker'] != 'TOTAL']['ticker'].unique().tolist() if 'TOTAL' in df['ticker'].values else df['ticker'].unique().tolist()
+        pie_fund_names = get_fund_names(pie_tickers)
+        
+        # Semantic wrapper with ARIA label for screen readers
+        st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
+        pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
+        st.plotly_chart(pie, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col_metrics:
+        st.markdown(render_metric_grid(*summary_cards), unsafe_allow_html=True)
 
     # Performance chart from snapshots
     st.markdown("---")
