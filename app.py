@@ -130,15 +130,37 @@ def main():
         st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
 
         st.markdown(render_sidebar_subtitle(get_section_label("date")), unsafe_allow_html=True)
-        st.markdown('<div aria-label="Performance period slider: Select the number of days to display in the performance chart, from 7 to 365 days">', unsafe_allow_html=True)
-        days = st.slider(
+        
+        # Date range selector with radio buttons for presets and custom option
+        st.markdown('<div aria-label="Performance period selector: Choose a preset or custom date range for the performance chart">', unsafe_allow_html=True)
+        
+        range_option = st.radio(
             'Performance chart period',
-            min_value=7,
-            max_value=365,
-            value=30,
-            step=1,
-            help='Number of days to display in performance chart',
+            options=['Last day', 'Last 7 days', 'Last 30 days', 'Custom'],
+            index=2,  # Default to 30 days
+            key='range_preset',
+            label_visibility='collapsed'
         )
+        
+        # Map selection to days value
+        if range_option == 'Last day':
+            days = 1
+        elif range_option == 'Last 7 days':
+            days = 7
+        elif range_option == 'Last 30 days':
+            days = 30
+        else:  # Custom
+            days = st.slider(
+                'Days',
+                min_value=1,
+                max_value=30,
+                value=30,
+                step=1,
+                help='Select a custom date range',
+                key='custom_days_slider',
+                label_visibility='collapsed'
+            )
+        
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("<hr class='sidebar-divider' />", unsafe_allow_html=True)
