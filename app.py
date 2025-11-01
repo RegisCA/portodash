@@ -630,8 +630,22 @@ def main():
         lambda t: format_ticker_with_name(t, fund_names_map.get(t, t))
     )
     
-    # Reorder columns to put fund_name first
-    cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
+    # Reorder columns according to UX requirements:
+    # Fund/ETF, Account, Currency, Allocation %, Price, Gain %, Gain, Shares, Cost/Share, Current Value, Total Cost
+    # Exclude 'ticker' column from display (already included in fund_name)
+    cols = [
+        'fund_name',      # Fund/ETF
+        'account',        # Account
+        'currency',       # Currency
+        'allocation_pct', # Allocation %
+        'price',          # Price
+        'gain_pct',       # Gain %
+        'gain',           # Gain
+        'shares',         # Shares
+        'cost_basis',     # Cost/Share
+        'current_value',  # Current Value
+        'cost_total'      # Total Cost
+    ]
     df_holdings = df_holdings[cols]
     
     # Show account breakdown if viewing multiple accounts
@@ -679,6 +693,7 @@ def main():
     dynamic_height = min(max(num_rows * row_height + header_height + padding, 200), 600)
     
     # Display holdings table (sortable) with dynamic height
+    # hide_index=True removes the first column (row numbers 0, 1, 2...)
     st.dataframe(
         df_holdings.style
         .format({
@@ -695,19 +710,19 @@ def main():
         .set_table_attributes("class='data-table'"),
         width='stretch',
         height=dynamic_height,  # Dynamic height based on row count, capped at 600px
+        hide_index=True,  # Remove the index column (row numbers)
         column_config={
             'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
-            'ticker': st.column_config.TextColumn('Ticker', width='small'),
             'currency': st.column_config.TextColumn('Currency', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+            'price': st.column_config.NumberColumn('Price', width='small'),
+            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            'gain': st.column_config.NumberColumn('Gain', width='small'),
             'shares': st.column_config.NumberColumn('Shares', width='small'),
             'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
-            'price': st.column_config.NumberColumn('Price', width='small'),
             'current_value': st.column_config.NumberColumn('Current Value', width='small'),
             'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
-            'gain': st.column_config.NumberColumn('Gain', width='small'),
-            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
         },
     )
 
