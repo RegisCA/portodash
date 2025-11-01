@@ -590,7 +590,7 @@ def main():
     # Semantic wrapper with ARIA label for screen readers
     st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
     pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-    st.plotly_chart(pie, width='stretch')
+    st.plotly_chart(pie, use_container_width=True, config={'displayModeBar': False})
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
@@ -602,7 +602,7 @@ def main():
         # Semantic wrapper with ARIA label for screen readers
         st.markdown(f'<div role="img" aria-label="Performance line chart showing portfolio value over the last {days} days with FX impact analysis">', unsafe_allow_html=True)
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
-        st.plotly_chart(perf_fig, width='stretch')
+        st.plotly_chart(perf_fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
@@ -715,14 +715,14 @@ def main():
             'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
             'currency': st.column_config.TextColumn('Currency', width='small'),
-            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='medium'),
             'price': st.column_config.NumberColumn('Price', width='small'),
             'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
             'gain': st.column_config.NumberColumn('Gain', width='small'),
             'shares': st.column_config.NumberColumn('Shares', width='small'),
             'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
-            'current_value': st.column_config.NumberColumn('Current Value', width='small'),
-            'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
         },
     )
 

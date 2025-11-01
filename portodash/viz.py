@@ -52,8 +52,7 @@ def make_allocation_pie(df, fund_names_map=None):
         textposition='outside',
         text=d['callout_text'].tolist(),
         textinfo='text',
-        textfont_size=13,
-        textfont_family='system-ui, -apple-system, sans-serif',
+        textfont=dict(size=13, family='system-ui, -apple-system, sans-serif'),
         marker=dict(line=dict(color='#FFFFFF', width=2)),
         hovertemplate='<b>%{label}</b><br>Value: %{value:$,.0f} CAD<br>Share: %{percent}<extra></extra>'
     )
@@ -74,8 +73,7 @@ def make_allocation_pie(df, fund_names_map=None):
         plot_bgcolor='rgba(0,0,0,0)',
         hoverlabel=dict(
             bgcolor='white',
-            font_size=13,
-            font_family='system-ui, -apple-system, sans-serif'
+            font=dict(size=13, family='system-ui, -apple-system, sans-serif')
         )
     )
     
@@ -313,8 +311,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 margin=dict(l=20, r=20, t=20, b=80),
                 hoverlabel=dict(
                     bgcolor='white',
-                    font_size=13,
-                    font_family='system-ui, -apple-system, sans-serif'
+                    font=dict(size=13, family='system-ui, -apple-system, sans-serif')
                 )
             )
             
@@ -372,8 +369,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 margin=dict(l=20, r=20, t=20, b=80),
                 hoverlabel=dict(
                     bgcolor='white',
-                    font_size=13,
-                    font_family='system-ui, -apple-system, sans-serif'
+                    font=dict(size=13, family='system-ui, -apple-system, sans-serif')
                 )
             )
             
