@@ -590,7 +590,7 @@ def main():
     # Semantic wrapper with ARIA label for screen readers
     st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
     pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-    st.plotly_chart(pie, width='stretch')
+    st.plotly_chart(pie, use_container_width=True, config={'displayModeBar': False})
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
@@ -602,7 +602,7 @@ def main():
         # Semantic wrapper with ARIA label for screen readers
         st.markdown(f'<div role="img" aria-label="Performance line chart showing portfolio value over the last {days} days with FX impact analysis">', unsafe_allow_html=True)
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
-        st.plotly_chart(perf_fig, width='stretch')
+        st.plotly_chart(perf_fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
@@ -630,8 +630,22 @@ def main():
         lambda t: format_ticker_with_name(t, fund_names_map.get(t, t))
     )
     
-    # Reorder columns to put fund_name first
-    cols = ['fund_name'] + [col for col in df_holdings.columns if col != 'fund_name']
+    # Reorder columns according to UX requirements:
+    # Fund/ETF, Account, Currency, Allocation %, Price, Gain %, Gain, Shares, Cost/Share, Current Value, Total Cost
+    # Note: 'ticker' column is excluded from display (ticker info already included in fund_name)
+    cols = [
+        'fund_name',      # Fund/ETF
+        'account',        # Account
+        'currency',       # Currency
+        'allocation_pct', # Allocation %
+        'price',          # Price
+        'gain_pct',       # Gain %
+        'gain',           # Gain
+        'shares',         # Shares
+        'cost_basis',     # Cost/Share
+        'current_value',  # Current Value
+        'cost_total'      # Total Cost
+    ]
     df_holdings = df_holdings[cols]
     
     # Show account breakdown if viewing multiple accounts
@@ -679,6 +693,7 @@ def main():
     dynamic_height = min(max(num_rows * row_height + header_height + padding, 200), 600)
     
     # Display holdings table (sortable) with dynamic height
+    # hide_index=True removes the first column (row numbers 0, 1, 2...)
     st.dataframe(
         df_holdings.style
         .format({
@@ -695,19 +710,19 @@ def main():
         .set_table_attributes("class='data-table'"),
         width='stretch',
         height=dynamic_height,  # Dynamic height based on row count, capped at 600px
+        hide_index=True,  # Remove the index column (row numbers)
         column_config={
             'fund_name': st.column_config.TextColumn('Fund/ETF', width='large'),
             'account': st.column_config.TextColumn('Account', width='medium'),
-            'ticker': st.column_config.TextColumn('Ticker', width='small'),
             'currency': st.column_config.TextColumn('Currency', width='small'),
+            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='medium'),
+            'price': st.column_config.NumberColumn('Price', width='small'),
+            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
+            'gain': st.column_config.NumberColumn('Gain', width='small'),
             'shares': st.column_config.NumberColumn('Shares', width='small'),
             'cost_basis': st.column_config.NumberColumn('Cost/Share', width='small'),
-            'price': st.column_config.NumberColumn('Price', width='small'),
-            'current_value': st.column_config.NumberColumn('Current Value', width='small'),
-            'cost_total': st.column_config.NumberColumn('Total Cost', width='small'),
-            'gain': st.column_config.NumberColumn('Gain', width='small'),
-            'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
-            'allocation_pct': st.column_config.NumberColumn('Allocation %', width='small'),
+            'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+            'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
         },
     )
 
