@@ -632,7 +632,7 @@ def main():
     
     # Reorder columns according to UX requirements:
     # Fund/ETF, Account, Currency, Allocation %, Price, Gain %, Gain, Shares, Cost/Share, Current Value, Total Cost
-    # Exclude 'ticker' column from display (already included in fund_name)
+    # Note: 'ticker' column is excluded from display (ticker info already included in fund_name)
     cols = [
         'fund_name',      # Fund/ETF
         'account',        # Account
