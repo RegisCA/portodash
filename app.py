@@ -683,6 +683,9 @@ def main():
             }).reset_index()
             accounts_df['gain_pct'] = accounts_df['gain'] / accounts_df['cost_total']
             accounts_df = accounts_df.sort_values('current_value', ascending=False)
+            
+            # Reorder columns to place Gain % after Current Value
+            accounts_df = accounts_df[['account', 'current_value', 'gain_pct', 'cost_total', 'gain']]
 
             st.dataframe(
                 accounts_df.style
@@ -695,12 +698,13 @@ def main():
                 .map(color_gain_pct, subset=['gain_pct'])
                 .set_table_attributes("class='data-table'"),
                 width='stretch',
+                hide_index=True,  # Remove the index column (row numbers)
                 column_config={
                     'account': st.column_config.TextColumn('Account', width='medium'),
                     'current_value': st.column_config.NumberColumn('Current Value', width='medium'),
+                    'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
                     'cost_total': st.column_config.NumberColumn('Total Cost', width='medium'),
                     'gain': st.column_config.NumberColumn('Gain', width='medium'),
-                    'gain_pct': st.column_config.NumberColumn('Gain %', width='small'),
                 }
             )
     
