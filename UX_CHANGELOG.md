@@ -1,5 +1,72 @@
 # UX Enhancement Changelog
 
+## Version 1.2 - Responsive Widescreen Layout (October 31, 2025)
+
+### Overview
+Major information hierarchy redesign for widescreen displays, moving key insights
+above charts to eliminate scrolling. Context-aware UI elements adapt to filter
+state for more accurate labeling.
+
+### Key Changes
+
+#### Information Hierarchy Redesign
+- **Reorganized content flow**:
+  - Portfolio Overview → Portfolio Insights → Allocation → Performance → Holdings → Data Management
+  - Previously: Overview → Holdings → Allocation → Performance → Data Management
+- **Portfolio Insights moved above charts** for immediate visibility on first page
+- **Key metrics now visible without scrolling** on widescreen displays (1920x1080+)
+- Creates logical narrative: high-level values → key insights → visual story → detailed tables
+
+#### Portfolio Insights Enhancement
+- **Four key metric cards** displayed prominently:
+  - Positions: Total number of holdings
+  - Top Holding: Largest allocation with percentage
+  - FX Exposure: Non-CAD holdings percentage with top foreign currency
+  - Average Gain: Mean gain/loss percentage across all holdings
+- **Responsive card layout** with modern fintech styling
+- **Color-coded indicators** for quick comprehension
+
+#### Context-Aware Headers
+- **Dynamic section headers** that adapt based on filter state:
+  - No filters active: "Portfolio Overview" and "Portfolio Insights"
+  - Filters active: "Overview" and "Insights" (drops "Portfolio" for accuracy)
+- **More precise labeling** when viewing filtered subsets of portfolio
+- **Intelligent detection** of filter state via session state comparison
+
+#### Dynamic Table Heights
+- **All Holdings table** height calculated based on number of rows
+- **Formula**: `rows × 35px + 42px header + 20px padding`
+- **Range**: Minimum 200px, maximum 600px with internal scrolling
+- **Eliminates wasted space** when filtering to small subsets
+- **Better use of screen real estate** on widescreen displays
+
+#### Reduced Vertical Whitespace
+- **Optimized spacing** to fit more content above the fold
+- **Removed horizontal rule** before Portfolio Overview section
+- **Tighter section spacing** without sacrificing readability
+- **Portfolio Insights cards** now visible on first page with no scrolling
+
+### Files Modified
+- `app.py`: Reorganized section order, added dynamic headers, dynamic table heights
+- `portodash/theme.py`: Added context-aware header utilities
+- `UX_DESIGN.md`: Updated with v1.2 design patterns
+
+### Visual Impact
+- **Before**: Critical insights buried below large tables, requiring scrolling
+- **After**: Key metrics immediately visible, logical content flow, better information hierarchy
+
+### Accessibility
+- Maintained WCAG AA compliance
+- Proper heading hierarchy preserved
+- No impact on keyboard navigation or screen reader support
+
+### Performance
+- No performance impact
+- Dynamic calculations happen once per render
+- Table height calculation is lightweight
+
+---
+
 ## Version 1.1 - UX Polish (October 30, 2025)
 
 ### Overview

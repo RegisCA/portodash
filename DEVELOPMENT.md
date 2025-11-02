@@ -145,6 +145,54 @@ PortoDash was built as a lightweight Streamlit portfolio tracker focused on maki
 - Refresh README screenshots to capture the new theme and KPI cards.
 - Document typography tokens and card spacing guidelines in future design docs if the Streamlit implementation evolves.
 
+### Phase 8: Responsive Widescreen Layout (Oct 31)
+
+**Goal:** Optimize information hierarchy for widescreen displays and improve
+first-page comprehension.
+
+**Key Features (PR #54):**
+
+- **Information Hierarchy Redesign:**
+  - Reorganized content: Portfolio Overview → Portfolio Insights → Allocation → Performance → Holdings
+  - Moved Portfolio Insights above charts for immediate visibility
+  - Creates logical narrative from high-level to detailed views
+  - Addresses UX issue where critical insights were buried below tables
+
+- **Portfolio Insights Section:**
+  - New metric cards: Positions, Top Holding, FX Exposure, Average Gain
+  - Responsive card grid with modern styling
+  - Immediately visible on widescreen displays (no scrolling)
+  - Uses existing `render_metric_card()` and `render_metric_grid()` utilities
+
+- **Context-Aware Headers:**
+  - Headers adapt based on filter state
+  - "Portfolio Overview"/"Portfolio Insights" when viewing all accounts
+  - "Overview"/"Insights" when filters active
+  - More precise labeling improves clarity
+
+- **Dynamic Table Heights:**
+  - All Holdings table height calculated based on number of rows
+  - Formula: `rows × 35px + 42px header + 20px padding`
+  - Range: 200px minimum, 600px maximum with scrolling
+  - Eliminates wasted space when filtering to small subsets
+
+- **Reduced Vertical Whitespace:**
+  - Optimized spacing to fit more content above fold
+  - Removed unnecessary horizontal rules
+  - Portfolio Insights cards now visible on first page
+
+**Technical Implementation:**
+
+- Session state comparison to detect filter state
+- Dynamic calculation of table heights based on dataframe row count
+- Reordered Streamlit sections in main layout
+- Context-aware header utilities in `portodash/theme.py`
+
+**Bug Fixes:**
+
+- Fixed context-aware headers always showing "Overview"
+- Proper filter state detection via session state comparison
+
 ### Phase 7: Interactive UX Refinements (Oct 30, continued)
 
 **Goal:** Complete Phase 2 UX backlog with smart interaction patterns and cleaner information architecture.
@@ -607,30 +655,13 @@ Core technologies: Streamlit, yfinance, pandas, Plotly.
 
 ## Version History
 
-### v1.0-mvp (October 30, 2025)
+For detailed version history and changelog, see [CHANGELOG.md](CHANGELOG.md).
 
-**Commit:** 6c085f7  
-**Tag:** v1.0-mvp
-
-**Features:**
-
-- Multi-currency portfolio tracking with CAD home currency
-- FX impact analysis (Market vs Actual performance)
-- Demo mode for safe exploration
-- Rate limiting and graceful API fallback
-- Data provenance indicators (Live/Cache/Mixed)
-- Account filtering by name, holder, and type
-- Snapshot-based historical tracking
-- MIT licensed and ready for public sharing
-
-**Stats:**
-
-- 57 commits
-- 34+ PRs
-- 7 days of development
-- ~3,000 lines of Python code
-- 5 core modules + 3 utility scripts
+**Recent versions:**
+- **v1.2.0** (October 31, 2025) - Responsive Widescreen Layout
+- **v1.1.0** (October 30, 2025) - UX Polish and Accessibility
+- **v1.0-mvp** (October 30, 2025) - Initial MVP Release
 
 ---
 
-*This document will be referenced at the start of the UX enhancement phase to provide context for future development.*
+*This document provides development context and technical decisions. For user-facing changelog, see CHANGELOG.md.*

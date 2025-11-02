@@ -364,6 +364,21 @@ When making design changes, verify:
 
 ## Design System Changelog
 
+### v1.2 - Responsive Widescreen Layout (October 31, 2025)
+**Major Changes:**
+- Reorganized information hierarchy: Portfolio Insights moved above charts
+- Added dynamic context-aware headers that adapt to filter state
+- Implemented dynamic table heights based on content (200-600px range)
+- Reduced vertical whitespace for better widescreen optimization
+- Added Portfolio Insights section with four key metric cards
+- Optimized for immediate comprehension on first page load
+
+**Visual Impact:**
+- Better information hierarchy reduces cognitive load on widescreen displays
+- Key metrics visible without scrolling (Portfolio Insights on first page)
+- Context-aware headers improve clarity when filtering
+- Dynamic tables eliminate wasted space and improve responsiveness
+
 ### v1.1 - UX Polish (October 30, 2025)
 **Major Changes:**
 - Implemented Wealthsimple-inspired color palette with mint green accent

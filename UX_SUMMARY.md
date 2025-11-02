@@ -1,8 +1,60 @@
-# PortoDash v1.1 - UX Polish Release Notes
+# PortoDash UX Evolution - Release Notes
 
 ## Summary
 
-Complete visual redesign of PortoDash with a Wealthsimple-inspired clean aesthetic. This release transforms the MVP from a functional prototype into a polished, professional application ready for daily use and public sharing.
+PortoDash has evolved through major UX enhancements, from functional MVP to
+polished financial dashboard. This document chronicles the visual and interaction
+design improvements across v1.1 and v1.2 releases.
+
+## Version 1.2 - Responsive Widescreen Layout (October 31, 2025)
+
+### Overview
+Information hierarchy redesign for widescreen displays. Key portfolio insights
+moved above charts for immediate visibility without scrolling.
+
+### What Changed
+
+#### Reorganized Content Flow
+- **New order**: Portfolio Overview → Portfolio Insights → Allocation → Performance → Holdings
+- **Previous order**: Overview → Holdings → Allocation → Performance
+- Portfolio Insights cards now appear on first page above fold
+- Logical narrative: high-level values → key insights → visual story → detailed tables
+
+#### Portfolio Insights Section
+- Four key metric cards:
+  - **Positions**: Total number of holdings
+  - **Top Holding**: Largest allocation with percentage
+  - **FX Exposure**: Non-CAD holdings percentage
+  - **Average Gain**: Mean gain/loss across portfolio
+- Responsive card grid with modern fintech styling
+- Immediately visible on widescreen displays (no scrolling)
+
+#### Context-Aware Headers
+- Headers adapt based on filter state
+- **No filters**: "Portfolio Overview" and "Portfolio Insights"
+- **Filters active**: "Overview" and "Insights"
+- More accurate labeling when viewing filtered subsets
+
+#### Dynamic Table Heights
+- Holdings table height adapts to number of rows
+- Minimum 200px, maximum 600px with scrolling
+- Eliminates wasted space when filtering
+- Better screen real estate utilization
+
+### Impact
+- **Reduced scrolling**: Key metrics visible on first page
+- **Better comprehension**: Logical information flow
+- **Improved usability**: Context-aware UI elements
+- **Widescreen optimization**: Better use of horizontal space
+
+---
+
+## Version 1.1 - UX Polish (October 30, 2025)
+
+### Overview
+
+Complete visual redesign with Wealthsimple-inspired clean aesthetic. Transforms
+MVP from functional prototype into polished, professional application.
 
 ## What Changed
 

@@ -2,7 +2,34 @@
 
 ## At a Glance
 
-This document provides a quick reference for the UX improvements made in v1.1.
+This document provides a quick reference for the UX improvements made in v1.1
+and v1.2 releases.
+
+## Version 1.2 Highlights (October 31, 2025)
+
+### Information Hierarchy
+- **Portfolio Insights moved above charts** for immediate visibility
+- **New section order**: Overview → Insights → Allocation → Performance → Holdings
+- **Key metrics on first page** without scrolling (widescreen displays)
+
+### Portfolio Insights Cards
+- Four key metrics: Positions, Top Holding, FX Exposure, Average Gain
+- Responsive card grid layout
+- Modern fintech styling with color-coded indicators
+
+### Context-Aware UI
+- **Dynamic headers** adapt to filter state
+- **Dynamic table heights** based on content (200-600px)
+- More accurate labeling when viewing filtered subsets
+
+### Widescreen Optimization
+- Reduced vertical whitespace
+- Better use of horizontal screen space
+- Optimized for 1920x1080+ displays
+
+---
+
+## Version 1.1 Highlights (October 30, 2025)
 
 ---
 
@@ -231,5 +258,5 @@ When verifying the UX changes:
 
 ---
 
-**Last Updated**: October 30, 2025  
-**Version**: 1.1
+**Last Updated**: October 31, 2025  
+**Version**: 1.2
