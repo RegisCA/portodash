@@ -105,7 +105,7 @@ Feature requests should include:
 ### Documentation
 
 - Use markdown for all documentation
-- Keep line length under 400 characters
+- Keep line length under 120 characters for readability
 - Use proper heading hierarchy (## H2, ### H3)
 - Include code examples with syntax highlighting
 
