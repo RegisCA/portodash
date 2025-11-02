@@ -655,63 +655,13 @@ Core technologies: Streamlit, yfinance, pandas, Plotly.
 
 ## Version History
 
-### v1.2.0 (October 31, 2025)
+For detailed version history and changelog, see [CHANGELOG.md](CHANGELOG.md).
 
-**Features:**
-
-- Responsive widescreen layout with reorganized information hierarchy
-- Portfolio Insights section with four key metric cards
-- Context-aware headers that adapt to filter state
-- Dynamic table heights based on content
-- Optimized for widescreen displays (1920x1080+)
-
-**Stats:**
-
-- PR #54: Responsive Widescreen Layout
-- ~200 lines changed in app.py
-- New utilities in portodash/theme.py
-
-### v1.1.0 (October 31, 2025)
-
-**Features:**
-
-- WCAG 2.1 Level AA accessibility compliance
-- Enhanced holdings table with fund/ETF names
-- Collapsible filter sidebar with count badges
-- Context-aware refresh UI
-- Portfolio metrics cards (FX exposure, average gain)
-- Fintech theme utilities
-
-**Stats:**
-
-- Multiple PRs (#39, #40, #41, #52)
-- ~500+ lines changed
-- New modules: accessibility.py, fund_names.py
-
-### v1.0-mvp (October 30, 2025)
-
-**Commit:** 6c085f7  
-**Tag:** v1.0-mvp
-
-**Features:**
-
-- Multi-currency portfolio tracking with CAD home currency
-- FX impact analysis (Market vs Actual performance)
-- Demo mode for safe exploration
-- Rate limiting and graceful API fallback
-- Data provenance indicators (Live/Cache/Mixed)
-- Account filtering by name, holder, and type
-- Snapshot-based historical tracking
-- MIT licensed and ready for public sharing
-
-**Stats:**
-
-- 57 commits
-- 34+ PRs
-- 7 days of development
-- ~3,000 lines of Python code
-- 5 core modules + 3 utility scripts
+**Recent versions:**
+- **v1.2.0** (October 31, 2025) - Responsive Widescreen Layout
+- **v1.1.0** (October 30, 2025) - UX Polish and Accessibility
+- **v1.0-mvp** (October 30, 2025) - Initial MVP Release
 
 ---
 
-*This document will be referenced at the start of the UX enhancement phase to provide context for future development.*
+*This document provides development context and technical decisions. For user-facing changelog, see CHANGELOG.md.*
