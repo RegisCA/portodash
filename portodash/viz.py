@@ -18,6 +18,9 @@ def make_allocation_pie(df, fund_names_map=None):
     else:
         d = df.copy()
     
+    # Group by ticker and sum values (in case same ticker appears in multiple accounts)
+    d = d.groupby('ticker', as_index=False)['current_value'].sum()
+    
     # Calculate percentages for label threshold
     total_value = d['current_value'].sum()
     d['percentage'] = (d['current_value'] / total_value * 100)
@@ -29,12 +32,6 @@ def make_allocation_pie(df, fund_names_map=None):
         )
     else:
         d['display_label'] = d['ticker']
-    
-    # Create callout text: show ticker + % only if >= 5%, otherwise empty
-    d['callout_text'] = d.apply(
-        lambda row: f"{row['ticker']}<br>{row['percentage']:.1f}%" if row['percentage'] >= 5 else '',
-        axis=1
-    )
     
     # Clean color palette - Wealthsimple inspired
     colors = ['#00D46A', '#2E86AB', '#A23B72', '#F18F01', '#C73E1D', 
@@ -48,9 +45,18 @@ def make_allocation_pie(df, fund_names_map=None):
         color_discrete_sequence=colors
     )
     
+    # Build custom text list that shows ticker + percentage only for slices >= 5%
+    custom_text = []
+    for i, row in d.iterrows():
+        pct = (row['current_value'] / total_value) * 100
+        if pct >= 5:
+            custom_text.append(f"{row['ticker']}<br>{pct:.1f}%")
+        else:
+            custom_text.append('')
+    
     fig.update_traces(
         textposition='outside',
-        text=d['callout_text'].tolist(),
+        text=custom_text,
         textinfo='text',
         textfont=dict(size=13, family='system-ui, -apple-system, sans-serif'),
         marker=dict(line=dict(color='#FFFFFF', width=2)),
@@ -268,7 +274,7 @@ def make_snapshot_performance_chart(csv_path, days=30, fx_csv_path=None, tickers
                 plot_df,
                 x='date',
                 y=['Market Performance (Fixed FX)', 'Actual Performance (with FX)'],
-                labels={'value': 'Portfolio Value (CAD)', 'date': '', 'variable': 'Series'}
+                labels={'value': 'Portfolio Value (CAD)', 'date': '', 'variable': ''}
             )
             
             # Customize line styles - cleaner, more modern
