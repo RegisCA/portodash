@@ -612,7 +612,7 @@ def main():
     # Semantic wrapper with ARIA label for screen readers
     st.markdown('<div role="img" aria-label="Allocation pie chart showing portfolio distribution across funds">', unsafe_allow_html=True)
     pie = make_allocation_pie(df, fund_names_map=pie_fund_names)
-    st.plotly_chart(pie, width='stretch', config={'displayModeBar': False})
+    st.plotly_chart(pie, use_container_width=True, config={'displayModeBar': False})
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Performance chart from snapshots
@@ -624,7 +624,7 @@ def main():
         # Semantic wrapper with ARIA label for screen readers
         st.markdown(f'<div role="img" aria-label="Performance line chart showing portfolio value over the last {days} days with FX impact analysis">', unsafe_allow_html=True)
         perf_fig = make_snapshot_performance_chart(HIST_CSV, days=days, fx_csv_path=FX_CSV, tickers=tickers)
-        st.plotly_chart(perf_fig, width='stretch', config={'displayModeBar': False})
+        st.plotly_chart(perf_fig, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info('No historical snapshots yet. Capture a daily snapshot to build your performance history.')
